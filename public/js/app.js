@@ -170,8 +170,7 @@ function addExperience() {
       </div>
       <div class="form-group">
         <label class="form-label">${isAr ? 'وصف المهام والإنجازات' : 'Duties & Achievements'}</label>
-        <textarea class="form-textarea" id="expDesc-${id}" rows="4"></textarea>
-        <button class="ai-review-btn" onclick="reviewField('expDesc-${id}', 'experience')">${isAr ? '🤖 مراجعة بالذكاء الاصطناعي' : '🤖 AI Review'}</button>
+        <textarea class="form-textarea" id="expDesc-${id}" rows="4" oninput="debouncedReview('expDesc-${id}', 'experience')"></textarea>
         <div class="ai-review-result" id="review-expDesc-${id}"></div>
       </div>
     </div>
@@ -452,8 +451,18 @@ async function viewAsHTML() {
   }
 }
 
-// ===== AI FIELD REVIEW =====
-async function reviewField(fieldId, fieldType) {
+// ===== LIVE AI FIELD REVIEW (DEBOUNCED) =====
+const _reviewTimers = {};
+const _reviewCache = {};
+
+function debouncedReview(fieldId, fieldType) {
+  if (_reviewTimers[fieldId]) clearTimeout(_reviewTimers[fieldId]);
+  _reviewTimers[fieldId] = setTimeout(() => {
+    reviewFieldLive(fieldId, fieldType);
+  }, 2000); // 2 seconds after user stops typing
+}
+
+async function reviewFieldLive(fieldId, fieldType) {
   const el = document.getElementById(fieldId);
   let content = '';
 
@@ -463,15 +472,22 @@ async function reviewField(fieldId, fieldType) {
     content = el.value.trim();
   }
 
-  if (!content) {
-    showToast(currentLang === 'ar' ? 'يرجى كتابة محتوى أولاً' : 'Please write content first', 'error');
+  if (!content || content.length < 3) {
+    // Hide review if content is too short
+    const resultDiv = document.getElementById(`review-${fieldId}`);
+    if (resultDiv) resultDiv.classList.remove('visible');
     return;
   }
 
-  // Find the button and disable it
+  // Skip if same content was already reviewed
+  if (_reviewCache[fieldId] === content) return;
+  _reviewCache[fieldId] = content;
+
   const resultDiv = document.getElementById(`review-${fieldId}`);
-  const btn = resultDiv?.previousElementSibling;
-  if (btn) { btn.disabled = true; btn.textContent = currentLang === 'ar' ? '⏳ جاري المراجعة...' : '⏳ Reviewing...'; }
+  if (resultDiv) {
+    resultDiv.innerHTML = `<span style="color:var(--accent-light);font-size:12px;">${currentLang === 'ar' ? '⏳ جاري المراجعة...' : '⏳ Reviewing...'}</span>`;
+    resultDiv.classList.add('visible');
+  }
 
   try {
     const response = await fetch('/api/review-field', {
@@ -489,23 +505,23 @@ async function reviewField(fieldId, fieldType) {
     if (data.error) throw new Error(data.error);
 
     if (resultDiv) {
-      const sourceLabel = data.source === 'ai'
-        ? (currentLang === 'ar' ? '🤖 مراجعة الذكاء الاصطناعي' : '🤖 AI Review')
-        : (currentLang === 'ar' ? '📋 مراجعة تلقائية' : '📋 Auto Review');
-      resultDiv.innerHTML = `<span class="review-close" onclick="this.parentElement.classList.remove('visible')">✕</span><strong>${sourceLabel}</strong>\n\n${data.review}`;
+      const icon = data.source === 'ai' ? '🤖' : '📋';
+      resultDiv.innerHTML = `<span class="review-close" onclick="this.parentElement.classList.remove('visible')">✕</span>${icon} ${data.review}`;
       resultDiv.classList.add('visible');
     }
-    showToast(currentLang === 'ar' ? 'تمت المراجعة!' : 'Review complete!', 'success');
   } catch (err) {
-    showToast(err.message || (currentLang === 'ar' ? 'فشلت المراجعة' : 'Review failed'), 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      const arText = btn.getAttribute('data-ar');
-      const enText = btn.getAttribute('data-en');
-      btn.textContent = currentLang === 'ar' ? (arText || '🤖 مراجعة بالذكاء الاصطناعي') : (enText || '🤖 AI Review');
-    }
+    // Silently fail for live review — don't annoy user
+    if (resultDiv) resultDiv.classList.remove('visible');
   }
+}
+
+// Wire up live review to static fields
+function setupLiveReview() {
+  const jobTitleEl = document.getElementById('jobTitle');
+  if (jobTitleEl) jobTitleEl.addEventListener('input', () => debouncedReview('jobTitle', 'jobTitle'));
+
+  const summaryEl = document.getElementById('summary');
+  if (summaryEl) summaryEl.addEventListener('input', () => debouncedReview('summary', 'summary'));
 }
 
 // ===== TOAST =====
@@ -652,6 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   updateProgress();
   setupAutoSave();
+  setupLiveReview();
 });
 
 // Override showStep to auto-save
@@ -665,13 +682,13 @@ selectSpec = function (el) { _origSelectSpec(el); saveState(); };
 const _origSelectTemplate = selectTemplate;
 selectTemplate = function (el) { _origSelectTemplate(el); saveState(); };
 
-// Override addSkill to auto-save
+// Override addSkill to auto-save + live review
 const _origAddSkill = addSkill;
-addSkill = function (s) { _origAddSkill(s); saveState(); };
+addSkill = function (s) { _origAddSkill(s); saveState(); debouncedReview('skills', 'skills'); };
 
-// Override removeSkill to auto-save
+// Override removeSkill to auto-save + live review
 const _origRemoveSkill = removeSkill;
-removeSkill = function (i) { _origRemoveSkill(i); saveState(); };
+removeSkill = function (i) { _origRemoveSkill(i); saveState(); debouncedReview('skills', 'skills'); };
 
 // Override nextStep/prevStep to auto-save
 const _origNextStep = nextStep;
