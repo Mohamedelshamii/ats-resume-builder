@@ -458,12 +458,166 @@ function showToast(message, type = 'success') {
   setTimeout(() => toast.classList.remove('show'), 3500);
 }
 
+// ===== LOCAL STORAGE PERSISTENCE =====
+const STORAGE_KEY = 'ats_resume_data';
+
+function saveState() {
+  try {
+    // Collect all input values
+    const inputs = {};
+    document.querySelectorAll('.form-input, .form-textarea').forEach(el => {
+      if (el.id) inputs[el.id] = el.value;
+    });
+
+    const state = {
+      currentStep,
+      currentLang,
+      selectedSpecialization,
+      selectedTemplate,
+      userPhotoBase64,
+      skills: [...skills],
+      experienceCount,
+      educationCount,
+      inputs,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) { /* ignore quota errors */ }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+
+    // Skip if data is older than 24 hours
+    if (Date.now() - state.savedAt > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(STORAGE_KEY);
+      return false;
+    }
+
+    // Restore language
+    if (state.currentLang && state.currentLang !== currentLang) {
+      toggleLanguage();
+    }
+
+    // Restore specialization
+    if (state.selectedSpecialization) {
+      selectedSpecialization = state.selectedSpecialization;
+      document.querySelectorAll('.spec-card').forEach(card => {
+        const specAr = card.getAttribute('data-spec');
+        const specEn = card.getAttribute('data-spec-en');
+        if (specAr === selectedSpecialization || specEn === selectedSpecialization) {
+          card.classList.add('selected');
+        }
+      });
+    }
+
+    // Restore template
+    if (state.selectedTemplate) {
+      selectedTemplate = state.selectedTemplate;
+      document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+      const tCard = document.querySelector(`[data-template="${selectedTemplate}"]`);
+      if (tCard) tCard.classList.add('selected');
+      // Show photo upload if needed
+      const needsPhoto = (selectedTemplate === 'photo' || selectedTemplate === 'twocolumn');
+      const photoGroup = document.getElementById('photoUploadGroup');
+      if (photoGroup) photoGroup.style.display = needsPhoto ? 'block' : 'none';
+    }
+
+    // Restore photo
+    if (state.userPhotoBase64) {
+      userPhotoBase64 = state.userPhotoBase64;
+      const preview = document.getElementById('photoPreviewSmall');
+      if (preview) preview.innerHTML = `<img src="${userPhotoBase64}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);">`;
+    }
+
+    // Restore experience entries
+    const expCount = state.experienceCount || 1;
+    while (experienceCount < expCount) addExperience();
+
+    // Restore education entries
+    const eduCount = state.educationCount || 1;
+    while (educationCount < eduCount) addEducation();
+
+    // Restore skills
+    if (state.skills && state.skills.length > 0) {
+      skills = state.skills;
+      renderSkills();
+    }
+
+    // Restore all input values (after entries are created)
+    if (state.inputs) {
+      setTimeout(() => {
+        Object.keys(state.inputs).forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = state.inputs[id];
+        });
+      }, 50);
+    }
+
+    // Navigate to saved step
+    if (state.currentStep && state.currentStep > 1) {
+      setTimeout(() => showStep(state.currentStep), 100);
+    }
+
+    return true;
+  } catch (e) {
+    console.error('Load state error:', e);
+    return false;
+  }
+}
+
+function clearSavedState() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// Auto-save on any input change
+function setupAutoSave() {
+  document.addEventListener('input', () => saveState());
+  document.addEventListener('change', () => saveState());
+  // Also save when navigating steps
+  const origShowStep = showStep;
+  // Save state every time step changes — override via wrapper
+}
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
-  addExperience();
-  addEducation();
+  const loaded = loadState();
+  if (!loaded) {
+    addExperience();
+    addEducation();
+    // Auto-select classic template
+    const classicCard = document.querySelector('[data-template="classic"]');
+    if (classicCard) classicCard.classList.add('selected');
+  }
   updateProgress();
-  // Auto-select classic template
-  const classicCard = document.querySelector('[data-template="classic"]');
-  if (classicCard) classicCard.classList.add('selected');
+  setupAutoSave();
 });
+
+// Override showStep to auto-save
+const _origShowStep = showStep;
+
+// Override selectSpec to auto-save
+const _origSelectSpec = selectSpec;
+selectSpec = function (el) { _origSelectSpec(el); saveState(); };
+
+// Override selectTemplate to auto-save
+const _origSelectTemplate = selectTemplate;
+selectTemplate = function (el) { _origSelectTemplate(el); saveState(); };
+
+// Override addSkill to auto-save
+const _origAddSkill = addSkill;
+addSkill = function (s) { _origAddSkill(s); saveState(); };
+
+// Override removeSkill to auto-save
+const _origRemoveSkill = removeSkill;
+removeSkill = function (i) { _origRemoveSkill(i); saveState(); };
+
+// Override nextStep/prevStep to auto-save
+const _origNextStep = nextStep;
+nextStep = function () { _origNextStep(); saveState(); };
+
+const _origPrevStep = prevStep;
+prevStep = function () { _origPrevStep(); saveState(); };
