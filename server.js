@@ -136,6 +136,89 @@ app.post('/api/optimize', async (req, res) => {
   }
 });
 
+// API: AI Field Review
+app.post('/api/review-field', async (req, res) => {
+  try {
+    const { fieldType, content, jobTitle, specialization, language } = req.body;
+    if (!content || !content.trim()) return res.status(400).json({ error: 'Content is required' });
+
+    const isAr = language === 'ar';
+    const lang = isAr ? 'Arabic' : 'English';
+
+    // Try AI first
+    if (geminiService) {
+      try {
+        const prompts = {
+          summary: `Review this professional summary for a ${jobTitle || 'professional'} resume. Check ATS compatibility. Reply in ${lang} with: 1) Score (1-10), 2) What's good, 3) What to improve, 4) Suggested rewrite. Keep response under 200 words.\n\nSummary: "${content}"`,
+          experience: `Review this job experience description for a ${jobTitle || 'professional'} resume. Check ATS compatibility and action verbs. Reply in ${lang} with: 1) Score (1-10), 2) What's good, 3) What to improve, 4) Suggested rewrite with stronger action verbs. Keep response under 200 words.\n\nDescription: "${content}"`,
+          jobTitle: `Review this job title for ATS compatibility: "${content}". Reply in ${lang} with: 1) Is it ATS-friendly? 2) Suggested alternatives if needed. Keep response under 100 words.`,
+          skills: `Review these skills for a ${specialization || ''} ${jobTitle || ''} position: "${content}". Reply in ${lang} with: 1) Score (1-10), 2) Missing important skills, 3) Skills to add for ATS. Keep response under 150 words.`
+        };
+
+        const prompt = prompts[fieldType] || prompts.summary;
+        const result = await geminiService._callWithRotation(async (model) => {
+          const r = await model.generateContent(prompt);
+          return r.response.text();
+        });
+
+        console.log(`[API] AI field review (${fieldType}) completed`);
+        return res.json({ review: result, source: 'ai' });
+      } catch (aiError) {
+        console.log('[API] AI review failed, using offline:', aiError.message.substring(0, 60));
+      }
+    }
+
+    // Offline fallback
+    const review = reviewFieldOffline(fieldType, content, jobTitle, specialization, isAr);
+    res.json({ review, source: 'offline' });
+  } catch (error) {
+    console.error('[API] Review error:', error.message);
+    res.status(500).json({ error: 'Review failed' });
+  }
+});
+
+function reviewFieldOffline(fieldType, content, jobTitle, spec, isAr) {
+  const len = content.trim().length;
+  const words = content.trim().split(/\s+/).length;
+
+  if (fieldType === 'summary') {
+    const tips = [];
+    let score = 5;
+    if (len > 200) { score += 2; tips.push(isAr ? '✅ طول مناسب' : '✅ Good length'); }
+    else tips.push(isAr ? '⚠️ اكتب ملخصاً أطول (200+ حرف)' : '⚠️ Write a longer summary (200+ chars)');
+    if (content.match(/\d+/)) { score += 1; tips.push(isAr ? '✅ يحتوي أرقام (جيد لـ ATS)' : '✅ Contains numbers (good for ATS)'); }
+    else tips.push(isAr ? '💡 أضف أرقام وإحصائيات' : '💡 Add numbers and statistics');
+    if (jobTitle && content.toLowerCase().includes(jobTitle.toLowerCase().split(' ')[0])) { score += 1; tips.push(isAr ? '✅ يذكر المسمى الوظيفي' : '✅ Mentions job title'); }
+    else tips.push(isAr ? '💡 اذكر المسمى الوظيفي في الملخص' : '💡 Mention job title in summary');
+    score = Math.min(10, score);
+    return `${isAr ? 'التقييم' : 'Score'}: ${score}/10\n\n${tips.join('\n')}`;
+  }
+
+  if (fieldType === 'experience') {
+    const tips = [];
+    let score = 5;
+    const actionVerbs = ['managed', 'developed', 'led', 'created', 'implemented', 'designed', 'improved', 'built', 'delivered', 'achieved', 'أدرت', 'طورت', 'قدت', 'صممت', 'نفذت', 'حققت'];
+    const hasAction = actionVerbs.some(v => content.toLowerCase().includes(v));
+    if (hasAction) { score += 2; tips.push(isAr ? '✅ يحتوي أفعال قوية' : '✅ Contains strong action verbs'); }
+    else tips.push(isAr ? '💡 ابدأ بأفعال قوية مثل: طوّرت، قدت، حققت' : '💡 Start with action verbs: Managed, Developed, Led');
+    if (content.match(/\d+/)) { score += 1; tips.push(isAr ? '✅ يحتوي أرقام وإنجازات' : '✅ Includes metrics'); }
+    else tips.push(isAr ? '💡 أضف أرقام: "زادت المبيعات 30%"' : '💡 Add metrics: "Increased sales by 30%"');
+    if (len > 100) { score += 1; tips.push(isAr ? '✅ وصف تفصيلي' : '✅ Detailed description'); }
+    else tips.push(isAr ? '⚠️ أضف المزيد من التفاصيل' : '⚠️ Add more detail');
+    score = Math.min(10, score);
+    return `${isAr ? 'التقييم' : 'Score'}: ${score}/10\n\n${tips.join('\n')}`;
+  }
+
+  if (fieldType === 'jobTitle') {
+    const generic = ['worker', 'employee', 'staff', 'عامل', 'موظف'];
+    const isGeneric = generic.some(g => content.toLowerCase().includes(g));
+    if (isGeneric) return isAr ? '⚠️ المسمى عام جداً. استخدم مسمى أكثر تحديداً مثل: محلل بيانات، مطور ويب' : '⚠️ Too generic. Use specific titles like: Data Analyst, Web Developer';
+    return isAr ? '✅ المسمى الوظيفي مناسب لأنظمة ATS' : '✅ Job title is ATS-friendly';
+  }
+
+  return isAr ? '✅ المحتوى مقبول' : '✅ Content looks good';
+}
+
 // API: Generate PDF — saves to temp file, returns download URL
 app.post('/api/generate-pdf', async (req, res) => {
   try {

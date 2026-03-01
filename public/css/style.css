@@ -1173,3 +1173,65 @@ body.ltr .tp-twocol-sidebar {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ===== AI REVIEW BUTTON & RESULT ===== */
+.ai-review-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 16px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  color: var(--accent-light);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ai-review-btn:hover {
+  background: rgba(99, 102, 241, 0.1);
+  transform: translateY(-1px);
+}
+
+.ai-review-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.ai-review-result {
+  display: none;
+  margin-top: 10px;
+  padding: 14px 16px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--border-radius-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  animation: fadeInUp 0.3s ease;
+}
+
+.ai-review-result.visible {
+  display: block;
+}
+
+.ai-review-result .review-close {
+  float: left;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 16px;
+  transition: var(--transition);
+}
+
+body.ltr .ai-review-result .review-close {
+  float: right;
+}
+
+.ai-review-result .review-close:hover {
+  color: var(--danger);
+}

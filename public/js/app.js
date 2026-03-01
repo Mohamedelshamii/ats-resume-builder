@@ -171,6 +171,8 @@ function addExperience() {
       <div class="form-group">
         <label class="form-label">${isAr ? 'وصف المهام والإنجازات' : 'Duties & Achievements'}</label>
         <textarea class="form-textarea" id="expDesc-${id}" rows="4"></textarea>
+        <button class="ai-review-btn" onclick="reviewField('expDesc-${id}', 'experience')">${isAr ? '🤖 مراجعة بالذكاء الاصطناعي' : '🤖 AI Review'}</button>
+        <div class="ai-review-result" id="review-expDesc-${id}"></div>
       </div>
     </div>
   `;
@@ -447,6 +449,62 @@ async function viewAsHTML() {
     showToast(err.message || (currentLang === 'ar' ? 'فشل' : 'Failed'), 'error');
   } finally {
     overlay.classList.remove('active');
+  }
+}
+
+// ===== AI FIELD REVIEW =====
+async function reviewField(fieldId, fieldType) {
+  const el = document.getElementById(fieldId);
+  let content = '';
+
+  if (fieldType === 'skills') {
+    content = skills.join(', ');
+  } else if (el) {
+    content = el.value.trim();
+  }
+
+  if (!content) {
+    showToast(currentLang === 'ar' ? 'يرجى كتابة محتوى أولاً' : 'Please write content first', 'error');
+    return;
+  }
+
+  // Find the button and disable it
+  const resultDiv = document.getElementById(`review-${fieldId}`);
+  const btn = resultDiv?.previousElementSibling;
+  if (btn) { btn.disabled = true; btn.textContent = currentLang === 'ar' ? '⏳ جاري المراجعة...' : '⏳ Reviewing...'; }
+
+  try {
+    const response = await fetch('/api/review-field', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fieldType,
+        content,
+        jobTitle: document.getElementById('jobTitle')?.value || '',
+        specialization: selectedSpecialization,
+        language: currentLang
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    if (resultDiv) {
+      const sourceLabel = data.source === 'ai'
+        ? (currentLang === 'ar' ? '🤖 مراجعة الذكاء الاصطناعي' : '🤖 AI Review')
+        : (currentLang === 'ar' ? '📋 مراجعة تلقائية' : '📋 Auto Review');
+      resultDiv.innerHTML = `<span class="review-close" onclick="this.parentElement.classList.remove('visible')">✕</span><strong>${sourceLabel}</strong>\n\n${data.review}`;
+      resultDiv.classList.add('visible');
+    }
+    showToast(currentLang === 'ar' ? 'تمت المراجعة!' : 'Review complete!', 'success');
+  } catch (err) {
+    showToast(err.message || (currentLang === 'ar' ? 'فشلت المراجعة' : 'Review failed'), 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      const arText = btn.getAttribute('data-ar');
+      const enText = btn.getAttribute('data-en');
+      btn.textContent = currentLang === 'ar' ? (arText || '🤖 مراجعة بالذكاء الاصطناعي') : (enText || '🤖 AI Review');
+    }
   }
 }
 
