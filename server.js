@@ -405,6 +405,29 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
+app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current and new passwords are required' });
+  }
+
+  db.get('SELECT * FROM users WHERE id = ?', [req.user.id], async (err, user) => {
+    if (err || !user) return res.status(500).json({ error: 'Database error' });
+
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!validPassword) return res.status(400).json({ error: 'Incorrect current password' });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    db.run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, req.user.id], function (updateErr) {
+      if (updateErr) return res.status(500).json({ error: 'Failed to update password' });
+      res.json({ message: 'Password updated successfully' });
+    });
+  });
+});
+
 app.get('/api/auth/me', authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });

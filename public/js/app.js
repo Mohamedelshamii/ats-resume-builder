@@ -1347,3 +1347,31 @@ async function deleteResumeFromDB(id) {
     showToast('Network error', 'error');
   }
 }
+
+async function changePassword() {
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+
+  if (!currentPassword || !newPassword) {
+    return showToast(currentLang === 'ar' ? 'يرجى إدخال كلمة المرور الحالية والجديدة' : 'Please enter current and new passwords', 'error');
+  }
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      showToast(currentLang === 'ar' ? 'تم تحديث كلمة المرور بنجاح' : 'Password updated successfully', 'success');
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+    } else {
+      showToast(data.error || 'Failed to update password', 'error');
+    }
+  } catch (e) {
+    showToast('Network error', 'error');
+  }
+}

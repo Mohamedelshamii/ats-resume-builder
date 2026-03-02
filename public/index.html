@@ -18,10 +18,16 @@
       <span class="logo-text">ATS Builder</span>
     </div>
     <div class="header-actions">
-      <button class="nav-btn" id="dbDashboardBtn" onclick="showDashboard()" style="display:none; padding:4px 10px; font-size:12px;" data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</button>
-      <button class="nav-btn" id="dbLoginBtn" onclick="openLoginModal()" style="padding:4px 10px; font-size:12px; background:transparent; border:1px solid var(--primary);" data-ar="تسجيل الدخول" data-en="Login">تسجيل الدخول</button>
-      <button class="reset-btn" id="dbLogoutBtn" onclick="logoutUser()" style="display:none; padding:4px 10px; font-size:12px;" data-ar="خروج" data-en="Logout">خروج</button>
-      <button class="reset-btn" id="resetBtn" onclick="resetAll()" data-ar="🔄 إعادة تعيين" data-en="🔄 Reset">🔄 إعادة</button>
+      <button class="nav-btn" id="dbDashboardBtn" onclick="showDashboard()"
+        style="display:none; padding:4px 10px; font-size:12px;" data-ar="لوحة التحكم" data-en="Dashboard">لوحة
+        التحكم</button>
+      <button class="nav-btn" id="dbLoginBtn" onclick="openLoginModal()"
+        style="padding:4px 10px; font-size:12px; background:transparent; border:1px solid var(--primary);"
+        data-ar="تسجيل الدخول" data-en="Login">تسجيل الدخول</button>
+      <button class="reset-btn" id="dbLogoutBtn" onclick="logoutUser()"
+        style="display:none; padding:4px 10px; font-size:12px;" data-ar="خروج" data-en="Logout">خروج</button>
+      <button class="reset-btn" id="resetBtn" onclick="resetAll()" data-ar="🔄 إعادة تعيين" data-en="🔄 Reset">🔄
+        إعادة</button>
       <button class="lang-toggle" id="langToggle" onclick="toggleLanguage()">English</button>
     </div>
   </header>
@@ -619,10 +625,12 @@
   </main>
 
   <!-- Login/Register Modal -->
-  <div class="modal-overlay" id="authModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+  <div class="modal-overlay" id="authModal"
+    style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; padding:20px;">
     <div class="form-card" style="max-width:400px; width:100%; position:relative;">
-      <button onclick="document.getElementById('authModal').style.display='none'" style="position:absolute; top:15px; left:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px;">✕</button>
-      
+      <button onclick="document.getElementById('authModal').style.display='none'"
+        style="position:absolute; top:15px; left:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px;">✕</button>
+
       <div id="loginFormContainer">
         <h2 class="form-card-title mb-4" data-ar="تسجيل الدخول" data-en="Login">تسجيل الدخول</h2>
         <div class="form-group">
@@ -634,7 +642,8 @@
           <input type="password" class="form-input" id="loginPassword" dir="ltr">
         </div>
         <button class="nav-btn next" style="width:100%; margin-top:10px;" onclick="loginUser()">تسجيل الدخول</button>
-        <p style="text-align:center; margin-top:15px; font-size:13px; color:var(--text-muted); cursor:pointer;" onclick="toggleAuthMode()">لا تملك حساباً؟ أنشئ حساب جديد</p>
+        <p style="text-align:center; margin-top:15px; font-size:13px; color:var(--text-muted); cursor:pointer;"
+          onclick="toggleAuthMode()">لا تملك حساباً؟ أنشئ حساب جديد</p>
       </div>
 
       <div id="registerFormContainer" style="display:none;">
@@ -652,30 +661,56 @@
           <input type="password" class="form-input" id="regPassword" dir="ltr">
         </div>
         <button class="nav-btn next" style="width:100%; margin-top:10px;" onclick="registerUser()">إنشاء حساب</button>
-        <p style="text-align:center; margin-top:15px; font-size:13px; color:var(--text-muted); cursor:pointer;" onclick="toggleAuthMode()">لديك حساب بالفعل؟ سجل دخولك</p>
+        <p style="text-align:center; margin-top:15px; font-size:13px; color:var(--text-muted); cursor:pointer;"
+          onclick="toggleAuthMode()">لديك حساب بالفعل؟ سجل دخولك</p>
       </div>
     </div>
   </div>
 
   <!-- Dashboard Modal -->
-  <div class="modal-overlay" id="dashboardModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9998; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto;">
+  <div class="modal-overlay" id="dashboardModal"
+    style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9998; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto;">
     <div class="form-card" style="max-width:800px; width:100%; position:relative;">
-      <button onclick="document.getElementById('dashboardModal').style.display='none'" style="position:absolute; top:15px; left:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px;">✕</button>
-      
+      <button onclick="document.getElementById('dashboardModal').style.display='none'"
+        style="position:absolute; top:15px; left:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px;">✕</button>
+
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <h2 class="form-card-title" data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</h2>
-        <button class="nav-btn next" onclick="startNewResume()" data-ar="سيرة ذاتية جديدة +" data-en="New Resume +">سيرة ذاتية جديدة +</button>
+        <button class="nav-btn next" onclick="startNewResume()" data-ar="سيرة ذاتية جديدة +" data-en="New Resume +">سيرة
+          ذاتية جديدة +</button>
       </div>
-      
-      <div id="resumesListContainer">
+
+      <div id="resumesListContainer" style="margin-bottom: 30px;">
         <!-- Resumes fetched securely via API will be displayed here -->
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
+
+      <div>
+        <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--text-primary);" data-ar="🔐 تغيير كلمة المرور"
+          data-en="🔐 Change Password">🔐 تغيير كلمة المرور</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+          <div class="form-group" style="margin-bottom:0; flex:1; min-width:200px;">
+            <label class="form-label" data-ar="كلمة المرور الحالية" data-en="Current Password">كلمة المرور
+              الحالية</label>
+            <input type="password" class="form-input" id="currentPassword" dir="ltr">
+          </div>
+          <div class="form-group" style="margin-bottom:0; flex:1; min-width:200px;">
+            <label class="form-label" data-ar="كلمة المرور الجديدة" data-en="New Password">كلمة المرور الجديدة</label>
+            <input type="password" class="form-input" id="newPassword" dir="ltr">
+          </div>
+          <button class="nav-btn next" onclick="changePassword()" style="height:44px; padding:0 20px;" data-ar="تحديث"
+            data-en="Update">تحديث</button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Save Button in Preview Step -->
-  <div id="saveToDbFloatingBtn" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:1000;">
-    <button class="nav-btn next" onclick="saveResumeToDB()" style="box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); border-radius:30px; padding:12px 24px;">
+  <div id="saveToDbFloatingBtn"
+    style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:1000;">
+    <button class="nav-btn next" onclick="saveResumeToDB()"
+      style="box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); border-radius:30px; padding:12px 24px;">
       💾 <span data-ar="حفظ السيرة الذاتية (سحابياً)" data-en="Save Resume (Cloud)">حفظ السيرة الذاتية (سحابياً)</span>
     </button>
   </div>
