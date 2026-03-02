@@ -3,7 +3,13 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const db = require('./services/db');
 const pdfGenerator = require('./services/pdfGenerator');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'ats-resume-super-secret-key';
 
 // Try to load Gemini service (optional)
 let geminiService = null;
@@ -35,6 +41,7 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ===== Offline ATS Scorer =====
@@ -334,6 +341,124 @@ app.get('/api/view/:fileId', (req, res) => {
     <style>body { padding-top: 60px; }</style>
   </body>`);
   res.send(printableHtml);
+});
+
+// ===== AUTHENTICATION MIDDLEWARE =====
+const authenticateToken = (req, res, next) => {
+  const token = req.cookies.token;
+  if (!token) return res.status(401).json({ error: 'Access denied. Please login.' });
+
+  try {
+    const verified = jwt.verify(token, JWT_SECRET);
+    req.user = verified;
+    next();
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid token.' });
+  }
+};
+
+// ===== AUTH & DASHBOARD ROUTES =====
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ error: 'All fields are required' });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    db.run('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, hashedPassword], function (err) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+          return res.status(400).json({ error: 'Email already exists' });
+        }
+        return res.status(500).json({ error: 'Registration failed' });
+      }
+
+      const token = jwt.sign({ id: this.lastID, name: name, email: email }, JWT_SECRET, { expiresIn: '7d' });
+      res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 });
+      res.status(201).json({ message: 'User created successfully', user: { id: this.lastID, name, email } });
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+
+  db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    if (!user) return res.status(400).json({ error: 'Invalid email or password' });
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) return res.status(400).json({ error: 'Invalid email or password' });
+
+    const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.json({ message: 'Logged in successfully', user: { id: user.id, name: user.name, email: user.email } });
+  });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ message: 'Logged out successfully' });
+});
+
+app.get('/api/auth/me', authenticateToken, (req, res) => {
+  res.json({ user: req.user });
+});
+
+app.get('/api/resumes', authenticateToken, (req, res) => {
+  db.all('SELECT id, title, updated_at FROM resumes WHERE user_id = ? ORDER BY updated_at DESC', [req.user.id], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json({ resumes: rows });
+  });
+});
+
+app.get('/api/resumes/:id', authenticateToken, (req, res) => {
+  db.get('SELECT * FROM resumes WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    if (!row) return res.status(404).json({ error: 'Resume not found' });
+
+    try {
+      row.data = JSON.parse(row.data);
+      res.json({ resume: row });
+    } catch (e) {
+      res.status(500).json({ error: 'Error parsing resume data' });
+    }
+  });
+});
+
+app.post('/api/resumes', authenticateToken, (req, res) => {
+  const { title, data } = req.body;
+  const dataString = JSON.stringify(data);
+
+  db.run('INSERT INTO resumes (user_id, title, data) VALUES (?, ?, ?)', [req.user.id, title || 'My Resume', dataString], function (err) {
+    if (err) return res.status(500).json({ error: 'Failed to insert resume' });
+    res.json({ message: 'Resume created', id: this.lastID });
+  });
+});
+
+app.put('/api/resumes/:id', authenticateToken, (req, res) => {
+  const { title, data } = req.body;
+  const dataString = JSON.stringify(data);
+
+  db.run('UPDATE resumes SET title = ?, data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+    [title || 'My Resume', dataString, req.params.id, req.user.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: 'Failed to update resume' });
+      if (this.changes === 0) return res.status(404).json({ error: 'Resume not found or not yours' });
+      res.json({ message: 'Resume updated successfully' });
+    });
+});
+
+app.delete('/api/resumes/:id', authenticateToken, (req, res) => {
+  db.run('DELETE FROM resumes WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], function (err) {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    if (this.changes === 0) return res.status(404).json({ error: 'Resume not found' });
+    res.json({ message: 'Resume deleted' });
+  });
 });
 
 app.listen(PORT, () => {

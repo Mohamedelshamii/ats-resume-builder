@@ -1132,3 +1132,218 @@ window.loadCities = function () {
     });
   }
 };
+
+// ===== AUTHENTICATION & DASHBOARD LOGIC =====
+let currentUser = null;
+
+async function checkAuthStatus() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data.user;
+      document.getElementById('dbLoginBtn').style.display = 'none';
+      document.getElementById('dbDashboardBtn').style.display = 'inline-block';
+      document.getElementById('dbLogoutBtn').style.display = 'inline-block';
+      document.getElementById('saveToDbFloatingBtn').style.display = currentStep === 8 ? 'block' : 'none';
+    } else {
+      currentUser = null;
+      document.getElementById('dbLoginBtn').style.display = 'inline-block';
+      document.getElementById('dbDashboardBtn').style.display = 'none';
+      document.getElementById('dbLogoutBtn').style.display = 'none';
+      document.getElementById('saveToDbFloatingBtn').style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Auth check fail:', err);
+  }
+}
+document.addEventListener('DOMContentLoaded', checkAuthStatus);
+
+// Also tie the floating save button to step change
+const _origShowStepForAuth = showStep;
+showStep = function (step) {
+  _origShowStepForAuth(step);
+  if (currentUser) {
+    document.getElementById('saveToDbFloatingBtn').style.display = step === 8 ? 'block' : 'none';
+  }
+};
+
+function openLoginModal() {
+  document.getElementById('authModal').style.display = 'flex';
+  document.getElementById('loginFormContainer').style.display = 'block';
+  document.getElementById('registerFormContainer').style.display = 'none';
+}
+
+function toggleAuthMode() {
+  const loginForm = document.getElementById('loginFormContainer');
+  const regForm = document.getElementById('registerFormContainer');
+  if (loginForm.style.display === 'none') {
+    loginForm.style.display = 'block';
+    regForm.style.display = 'none';
+  } else {
+    loginForm.style.display = 'none';
+    regForm.style.display = 'block';
+  }
+}
+
+async function loginUser() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return showToast('Please enter credentials', 'error');
+
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    showToast(currentLang === 'ar' ? 'تم تسجيل الدخول' : 'Logged in');
+    document.getElementById('authModal').style.display = 'none';
+    await checkAuthStatus();
+  } else {
+    showToast(data.error || 'Login failed', 'error');
+  }
+}
+
+async function registerUser() {
+  const name = document.getElementById('regName').value;
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPassword').value;
+
+  if (!name || !email || !password) return showToast('All fields required', 'error');
+
+  const res = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password })
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    showToast(currentLang === 'ar' ? 'تم إنشاء الحساب' : 'Account created');
+    document.getElementById('authModal').style.display = 'none';
+    await checkAuthStatus();
+  } else {
+    showToast(data.error || 'Registration failed', 'error');
+  }
+}
+
+async function logoutUser() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  currentUser = null;
+  document.getElementById('currentResumeId').value = '';
+  await checkAuthStatus();
+  resetAll();
+}
+
+async function showDashboard() {
+  document.getElementById('dashboardModal').style.display = 'flex';
+  const container = document.getElementById('resumesListContainer');
+  container.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const res = await fetch('/api/resumes');
+    const data = await res.json();
+
+    if (data.resumes.length === 0) {
+      container.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:40px;">${currentLang === 'ar' ? 'لا توجد سير ذاتية محفوظة بعد.' : 'No saved resumes yet.'}</p>`;
+      return;
+    }
+
+    container.innerHTML = `<div style="display:grid; grid-template-columns:1fr; gap:12px;">
+      ${data.resumes.map(r => `
+        <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; padding:16px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="margin:0 0 5px 0; color:var(--text-primary); font-size:16px;">${r.title}</h3>
+            <span style="font-size:12px; color:var(--text-muted);">تحديث: ${new Date(r.updated_at).toLocaleDateString()}</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button onclick="loadResumeFromDB(${r.id})" class="nav-btn" style="padding:6px 14px; font-size:13px; background:var(--primary);">فتح</button>
+            <button onclick="deleteResumeFromDB(${r.id})" class="nav-btn" style="padding:6px 14px; font-size:13px; background:var(--danger);">حذف</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  } catch (err) {
+    container.innerHTML = '<p class="text-danger">Failed to load resumes</p>';
+  }
+}
+
+async function loadResumeFromDB(id) {
+  try {
+    const res = await fetch(`/api/resumes/${id}`);
+    const data = await res.json();
+    if (res.ok) {
+      // Reconstitute into localStorage essentially
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.resume.data));
+      document.getElementById('currentResumeId').value = id;
+      document.getElementById('dashboardModal').style.display = 'none';
+      showToast(currentLang === 'ar' ? 'تم تحميل السيرة' : 'Resume loaded');
+      location.reload(); // Refresh to ensure all fields catch the new DB state mapped to localStorage
+    }
+  } catch (e) {
+    showToast('Failed to load resume', 'error');
+  }
+}
+
+function startNewResume() {
+  document.getElementById('currentResumeId').value = '';
+  document.getElementById('dashboardModal').style.display = 'none';
+  resetAll();
+}
+
+async function saveResumeToDB() {
+  if (!currentUser) return openLoginModal();
+
+  const currentId = document.getElementById('currentResumeId').value;
+  const rawState = localStorage.getItem(STORAGE_KEY);
+  if (!rawState) return showToast('No data to save', 'error');
+
+  const stateData = JSON.parse(rawState);
+  const fullName = document.getElementById('fullName')?.value || 'New Resume';
+  const title = currentLang === 'ar' ? `سيرة ${fullName}` : `${fullName}'s Resume`;
+
+  const method = currentId ? 'PUT' : 'POST';
+  const url = currentId ? `/api/resumes/${currentId}` : '/api/resumes';
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, data: stateData })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      if (!currentId && data.id) {
+        document.getElementById('currentResumeId').value = data.id;
+      }
+      showToast(currentLang === 'ar' ? 'تم حفظ السيرة في السحابة بنجاح!' : 'Saved to cloud successfully!', 'success');
+    } else {
+      showToast(data.error || 'Failed to save', 'error');
+    }
+  } catch (err) {
+    showToast('Network error while saving', 'error');
+  }
+}
+
+async function deleteResumeFromDB(id) {
+  if (!confirm(currentLang === 'ar' ? 'هل أنت متأكد من حذف هذه السيرة الذاتية السحابية؟' : 'Are you sure you want to delete this cloud resume?')) return;
+
+  try {
+    const res = await fetch(`/api/resumes/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      showToast(currentLang === 'ar' ? 'تم الحذف' : 'Deleted');
+      if (document.getElementById('currentResumeId').value == id) {
+        document.getElementById('currentResumeId').value = '';
+      }
+      showDashboard(); // Refresh list
+    } else {
+      showToast('Delete failed', 'error');
+    }
+  } catch (e) {
+    showToast('Network error', 'error');
+  }
+}
