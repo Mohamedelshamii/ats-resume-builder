@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ATS Resume Builder | منشئ السيرة الذاتية</title>
   <meta name="description" content="أنشئ سيرة ذاتية احترافية متوافقة مع أنظمة ATS">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
   <link rel="stylesheet" href="/css/style.css">
 </head>
+
 <body>
   <!-- Header -->
   <header class="app-header">
@@ -15,6 +18,8 @@
       <span class="logo-text">ATS Builder</span>
     </div>
     <div class="header-actions">
+      <button class="reset-btn" id="resetBtn" onclick="resetAll()" data-ar="🔄 إعادة تعيين" data-en="🔄 Reset">🔄 إعادة
+        تعيين</button>
       <button class="lang-toggle" id="langToggle" onclick="toggleLanguage()">English</button>
     </div>
   </header>
@@ -69,61 +74,108 @@
     <!-- ===== STEP 1: Specialization ===== -->
     <div class="form-card step-content" id="step1">
       <h2 class="form-card-title" data-ar="اختر تخصصك" data-en="Choose Your Specialization">اختر تخصصك</h2>
-      <p class="form-card-subtitle" data-ar="اختر المجال الذي تعمل فيه" data-en="Select your field">اختر المجال الذي تعمل فيه</p>
-      <div class="spec-grid" id="specGrid">
-        <div class="spec-card" data-spec="تكنولوجيا المعلومات" data-spec-en="Information Technology" onclick="selectSpec(this)">
-          <div class="spec-icon">💻</div>
-          <div class="spec-name" data-ar="تكنولوجيا المعلومات" data-en="Information Technology">تكنولوجيا المعلومات</div>
-        </div>
-        <div class="spec-card" data-spec="الهندسة" data-spec-en="Engineering" onclick="selectSpec(this)">
-          <div class="spec-icon">⚙️</div>
-          <div class="spec-name" data-ar="الهندسة" data-en="Engineering">الهندسة</div>
-        </div>
-        <div class="spec-card" data-spec="الطب والرعاية الصحية" data-spec-en="Healthcare & Medicine" onclick="selectSpec(this)">
-          <div class="spec-icon">🏥</div>
-          <div class="spec-name" data-ar="الطب والرعاية الصحية" data-en="Healthcare & Medicine">الطب والرعاية الصحية</div>
-        </div>
-        <div class="spec-card" data-spec="إدارة الأعمال" data-spec-en="Business Management" onclick="selectSpec(this)">
-          <div class="spec-icon">📊</div>
-          <div class="spec-name" data-ar="إدارة الأعمال" data-en="Business Management">إدارة الأعمال</div>
-        </div>
-        <div class="spec-card" data-spec="التسويق والمبيعات" data-spec-en="Marketing & Sales" onclick="selectSpec(this)">
-          <div class="spec-icon">📈</div>
-          <div class="spec-name" data-ar="التسويق والمبيعات" data-en="Marketing & Sales">التسويق والمبيعات</div>
-        </div>
-        <div class="spec-card" data-spec="المحاسبة والمالية" data-spec-en="Accounting & Finance" onclick="selectSpec(this)">
-          <div class="spec-icon">💰</div>
-          <div class="spec-name" data-ar="المحاسبة والمالية" data-en="Accounting & Finance">المحاسبة والمالية</div>
-        </div>
-        <div class="spec-card" data-spec="التصميم والإبداع" data-spec-en="Design & Creative" onclick="selectSpec(this)">
-          <div class="spec-icon">🎨</div>
-          <div class="spec-name" data-ar="التصميم والإبداع" data-en="Design & Creative">التصميم والإبداع</div>
-        </div>
-        <div class="spec-card" data-spec="التعليم والتدريب" data-spec-en="Education & Training" onclick="selectSpec(this)">
-          <div class="spec-icon">📚</div>
-          <div class="spec-name" data-ar="التعليم والتدريب" data-en="Education & Training">التعليم والتدريب</div>
-        </div>
-        <div class="spec-card" data-spec="القانون" data-spec-en="Law & Legal" onclick="selectSpec(this)">
-          <div class="spec-icon">⚖️</div>
-          <div class="spec-name" data-ar="القانون" data-en="Law & Legal">القانون</div>
-        </div>
-        <div class="spec-card" data-spec="الموارد البشرية" data-spec-en="Human Resources" onclick="selectSpec(this)">
-          <div class="spec-icon">👥</div>
-          <div class="spec-name" data-ar="الموارد البشرية" data-en="Human Resources">الموارد البشرية</div>
-        </div>
-        <div class="spec-card" data-spec="خدمة العملاء" data-spec-en="Customer Service" onclick="selectSpec(this)">
-          <div class="spec-icon">🎧</div>
-          <div class="spec-name" data-ar="خدمة العملاء" data-en="Customer Service">خدمة العملاء</div>
-        </div>
-        <div class="spec-card" data-spec="أخرى" data-spec-en="Other" onclick="selectSpec(this)">
-          <div class="spec-icon">✨</div>
-          <div class="spec-name" data-ar="أخرى" data-en="Other">أخرى</div>
+      <p class="form-card-subtitle" data-ar="أدخل تخصصك يدوياً أو اختر من الفئات المتاحة"
+        data-en="Enter your field manually or select from categories">أدخل تخصصك يدوياً أو اختر من الفئات المتاحة</p>
+
+      <!-- Manual Input Setup -->
+      <div class="form-group" style="margin-bottom: 24px;">
+        <label class="form-label" data-ar="📝 أدخل تخصصك يدوياً" data-en="📝 Enter specialization manually">📝 أدخل
+          تخصصك يدوياً</label>
+        <input type="text" class="form-input" id="manualSpecInput"
+          placeholder="مثال: مطور واجهات خلفية، مصمم جرافيك، مترجم حر..." oninput="clearSpecSelection()">
+      </div>
+
+      <div
+        style="text-align: center; margin: 24px 0; color: var(--text-secondary); font-size: 14px; position: relative;">
+        <hr
+          style="border: 0; border-top: 1px solid var(--border); position: absolute; top: 50%; left: 0; right: 0; z-index: 1;">
+        <span style="background: var(--bg-card); padding: 0 16px; position: relative; z-index: 2;"
+          data-ar="أو اختر من الفئات أدناه" data-en="Or choose from categories">أو اختر من الفئات أدناه</span>
+      </div>
+
+      <!-- Categories -->
+      <div style="margin-bottom: 20px;">
+        <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--text-primary);" data-ar="💻 التكنولوجيا والتصميم"
+          data-en="💻 Tech & Design">💻 التكنولوجيا والتصميم</h3>
+        <div class="spec-grid" id="specGrid-tech">
+          <div class="spec-card" data-spec="تكنولوجيا المعلومات" data-spec-en="Information Technology"
+            onclick="selectSpec(this)">
+            <div class="spec-icon">💻</div>
+            <div class="spec-name" data-ar="تكنولوجيا المعلومات" data-en="Information Technology">تكنولوجيا المعلومات
+            </div>
+          </div>
+          <div class="spec-card" data-spec="التصميم والإبداع" data-spec-en="Design & Creative"
+            onclick="selectSpec(this)">
+            <div class="spec-icon">🎨</div>
+            <div class="spec-name" data-ar="التصميم والإبداع" data-en="Design & Creative">التصميم والإبداع</div>
+          </div>
+          <div class="spec-card" data-spec="برمجة وتطوير Web" data-spec-en="Web Development" onclick="selectSpec(this)">
+            <div class="spec-icon">⌨️</div>
+            <div class="spec-name" data-ar="برمجة وتطوير Web" data-en="Web Development">برمجة وتطوير Web</div>
+          </div>
         </div>
       </div>
-      <div class="form-group" id="customSpecGroup" style="display:none;">
-        <label class="form-label" data-ar="أدخل تخصصك" data-en="Enter your specialization">أدخل تخصصك</label>
-        <input type="text" class="form-input" id="customSpec" placeholder="مثال: علوم البيانات">
+
+      <div style="margin-bottom: 20px;">
+        <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--text-primary);" data-ar="📊 الأعمال والإدارة"
+          data-en="📊 Business & Management">📊 الأعمال والإدارة</h3>
+        <div class="spec-grid" id="specGrid-business">
+          <div class="spec-card" data-spec="إدارة الأعمال" data-spec-en="Business Management"
+            onclick="selectSpec(this)">
+            <div class="spec-icon">📊</div>
+            <div class="spec-name" data-ar="إدارة الأعمال" data-en="Business Management">إدارة الأعمال</div>
+          </div>
+          <div class="spec-card" data-spec="المحاسبة والمالية" data-spec-en="Accounting & Finance"
+            onclick="selectSpec(this)">
+            <div class="spec-icon">💰</div>
+            <div class="spec-name" data-ar="المحاسبة والمالية" data-en="Accounting & Finance">المحاسبة والمالية</div>
+          </div>
+          <div class="spec-card" data-spec="التسويق والمبيعات" data-spec-en="Marketing & Sales"
+            onclick="selectSpec(this)">
+            <div class="spec-icon">📈</div>
+            <div class="spec-name" data-ar="التسويق والمبيعات" data-en="Marketing & Sales">التسويق والمبيعات</div>
+          </div>
+          <div class="spec-card" data-spec="الموارد البشرية" data-spec-en="Human Resources" onclick="selectSpec(this)">
+            <div class="spec-icon">👥</div>
+            <div class="spec-name" data-ar="الموارد البشرية" data-en="Human Resources">الموارد البشرية</div>
+          </div>
+        </div>
       </div>
+
+      <div style="margin-bottom: 20px;">
+        <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--text-primary);" data-ar="🛠 الخدمات والمهن الأخرى"
+          data-en="🛠 Services & Other">🛠 الخدمات والمهن الأخرى</h3>
+        <div class="spec-grid" id="specGrid-services">
+          <div class="spec-card" data-spec="العمل الحر" data-spec-en="Freelancing" onclick="selectSpec(this)">
+            <div class="spec-icon">🚀</div>
+            <div class="spec-name" data-ar="العمل الحر" data-en="Freelancing">العمل الحر</div>
+          </div>
+          <div class="spec-card" data-spec="الطب والرعاية الصحية" data-spec-en="Healthcare & Medicine"
+            onclick="selectSpec(this)">
+            <div class="spec-icon">🏥</div>
+            <div class="spec-name" data-ar="الطب والرعاية الصحية" data-en="Healthcare & Medicine">الطب والرعاية الصحية
+            </div>
+          </div>
+          <div class="spec-card" data-spec="الهندسة" data-spec-en="Engineering" onclick="selectSpec(this)">
+            <div class="spec-icon">⚙️</div>
+            <div class="spec-name" data-ar="الهندسة" data-en="Engineering">الهندسة</div>
+          </div>
+          <div class="spec-card" data-spec="التعليم والتدريب" data-spec-en="Education & Training"
+            onclick="selectSpec(this)">
+            <div class="spec-icon">📚</div>
+            <div class="spec-name" data-ar="التعليم والتدريب" data-en="Education & Training">التعليم والتدريب</div>
+          </div>
+          <div class="spec-card" data-spec="القانون" data-spec-en="Law & Legal" onclick="selectSpec(this)">
+            <div class="spec-icon">⚖️</div>
+            <div class="spec-name" data-ar="القانون" data-en="Law & Legal">القانون</div>
+          </div>
+          <div class="spec-card" data-spec="خدمة العملاء" data-spec-en="Customer Service" onclick="selectSpec(this)">
+            <div class="spec-icon">🎧</div>
+            <div class="spec-name" data-ar="خدمة العملاء" data-en="Customer Service">خدمة العملاء</div>
+          </div>
+        </div>
+      </div>
+
       <div class="nav-buttons">
         <div></div>
         <button class="nav-btn next" onclick="nextStep()" data-ar="التالي ←" data-en="Next →">التالي ←</button>
@@ -132,13 +184,18 @@
 
     <!-- ===== STEP 2: Template Selection ===== -->
     <div class="form-card step-content" id="step2" style="display:none;">
-      <h2 class="form-card-title" data-ar="اختر قالب السيرة الذاتية" data-en="Choose Resume Template">اختر قالب السيرة الذاتية</h2>
-      <p class="form-card-subtitle" data-ar="جميع القوالب متوافقة مع أنظمة ATS" data-en="All templates are ATS compatible">جميع القوالب متوافقة مع أنظمة ATS</p>
-      
-      <div class="template-grid" id="templateGrid">
+      <h2 class="form-card-title" data-ar="اختر قالب السيرة الذاتية" data-en="Choose Resume Template">اختر قالب السيرة
+        الذاتية</h2>
+      <p class="form-card-subtitle" data-ar="جميع القوالب מתوافقة مع أنظمة ATS"
+        data-en="All templates are ATS compatible">جميع القوالب متوافقة مع أنظمة ATS ومقسمة حسب الأسلوب</p>
+
+      <!-- Category 1 -->
+      <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--text-primary);" data-ar="📜 الكلاسيكية والبسيطة"
+        data-en="📜 Classic & Minimal">📜 الكلاسيكية والبسيطة</h3>
+      <div class="template-grid">
         <!-- Classic -->
         <div class="template-card" data-template="classic" onclick="selectTemplate(this)">
-          <div class="template-preview template-preview-classic">
+          <div class="template-preview">
             <div class="tp-name">━━━━━━━━━━</div>
             <div class="tp-line"></div>
             <div class="tp-section"></div>
@@ -150,31 +207,95 @@
           </div>
           <div class="template-info">
             <div class="template-name" data-ar="كلاسيكي" data-en="Classic">كلاسيكي</div>
-            <div class="template-desc" data-ar="بسيط وأنيق — أبيض وأسود" data-en="Simple & elegant — B&W">بسيط وأنيق — أبيض وأسود</div>
+            <div class="template-desc" data-ar="بسيط وأنيق — أبيض وأسود" data-en="Simple & elegant — B&W">بسيط وأنيق —
+              أبيض وأسود</div>
           </div>
           <div class="template-badge" data-ar="⭐ الأكثر توافقاً" data-en="⭐ Most Compatible">⭐ الأكثر توافقاً</div>
         </div>
 
+        <!-- Minimal -->
+        <div class="template-card" data-template="minimal" onclick="selectTemplate(this)">
+          <div class="template-preview">
+            <div class="tp-name" style="text-align:right;">━━━━━━━━━━</div>
+            <div class="tp-contact" style="text-align:right;">▪ ▪ ▪</div>
+            <div style="border-bottom: 1px dotted #ccc; margin: 8px 0;"></div>
+            <div class="tp-text"></div>
+            <div class="tp-text short"></div>
+            <div class="tp-text"></div>
+          </div>
+          <div class="template-info">
+            <div class="template-name" data-ar="بسيط (مينيمال)" data-en="Minimal">بسيط (مينيمال)</div>
+            <div class="template-desc" data-ar="مساحات فارغة واسعة — هادئ" data-en="More whitespace — calm">مساحات فارغة
+              واسعة — هادئ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category 2 -->
+      <h3 style="font-size: 16px; margin: 20px 0 12px; color: var(--text-primary);" data-ar="💼 الاحترافية والمؤسسية"
+        data-en="💼 Professional & Corporate">💼 الاحترافية والمؤسسية</h3>
+      <div class="template-grid">
         <!-- Professional -->
         <div class="template-card" data-template="professional" onclick="selectTemplate(this)">
-          <div class="template-preview template-preview-professional">
+          <div class="template-preview">
             <div class="tp-name">━━━━━━━━━━</div>
             <div class="tp-contact">▪ ▪ ▪</div>
             <div class="tp-section-bold"></div>
             <div class="tp-text"></div>
-            <div class="tp-text"></div>
-            <div class="tp-section-bold"></div>
             <div class="tp-text short"></div>
+            <div class="tp-section-bold"></div>
+            <div class="tp-text"></div>
           </div>
           <div class="template-info">
             <div class="template-name" data-ar="احترافي" data-en="Professional">احترافي</div>
-            <div class="template-desc" data-ar="عناوين بارزة — أبيض وأسود" data-en="Bold headers — B&W">عناوين بارزة — أبيض وأسود</div>
+            <div class="template-desc" data-ar="عناوين بارزة" data-en="Bold headers">عناوين بارزة</div>
           </div>
         </div>
 
+        <!-- Corporate -->
+        <div class="template-card" data-template="corporate" onclick="selectTemplate(this)">
+          <div class="template-preview">
+            <div
+              style="border-top: 2px solid var(--resume-accent); border-bottom: 2px solid var(--resume-accent); padding: 4px 0; margin-bottom: 8px; text-align:center;">
+              <div class="tp-name" style="margin:0;">━━━━━━━━━━</div>
+            </div>
+            <div class="tp-section"></div>
+            <div class="tp-text"></div>
+            <div class="tp-text short"></div>
+            <div class="tp-section"></div>
+            <div class="tp-text"></div>
+          </div>
+          <div class="template-info">
+            <div class="template-name" data-ar="مؤسسي" data-en="Corporate">مؤسسي</div>
+            <div class="template-desc" data-ar="رسمي ومدعوم بالخطوط" data-en="Formal & strict">رسمي ومدعوم بالخطوط</div>
+          </div>
+        </div>
+
+        <!-- Executive -->
+        <div class="template-card" data-template="executive" onclick="selectTemplate(this)">
+          <div class="template-preview">
+            <div class="tp-name" style="letter-spacing:3px;">━━━━━━━━</div>
+            <div class="tp-contact">▪ ▪ ▪</div>
+            <div class="tp-thin-line"></div>
+            <div class="tp-text"></div>
+            <div class="tp-text short"></div>
+            <div class="tp-thin-line"></div>
+            <div class="tp-text"></div>
+          </div>
+          <div class="template-info">
+            <div class="template-name" data-ar="تنفيذي" data-en="Executive">تنفيذي</div>
+            <div class="template-desc" data-ar="راقي للإدارات" data-en="Elegant for execs">راقي للإدارات</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category 3 -->
+      <h3 style="font-size: 16px; margin: 20px 0 12px; color: var(--text-primary);" data-ar="✨ العصرية والمبتكرة"
+        data-en="✨ Modern & Creative">✨ العصرية والمبتكرة</h3>
+      <div class="template-grid">
         <!-- Modern -->
         <div class="template-card" data-template="modern" onclick="selectTemplate(this)">
-          <div class="template-preview template-preview-modern">
+          <div class="template-preview">
             <div class="tp-sidebar-line"></div>
             <div class="tp-name" style="text-align:left;">━━━━━━</div>
             <div class="tp-text"></div>
@@ -186,31 +307,59 @@
           </div>
           <div class="template-info">
             <div class="template-name" data-ar="عصري" data-en="Modern">عصري</div>
-            <div class="template-desc" data-ar="خط جانبي أسود — أنيق" data-en="Black sidebar line — sleek">خط جانبي أسود — أنيق</div>
+            <div class="template-desc" data-ar="خط جانبي أسود — أنيق" data-en="Black sidebar line">خط جانبي أسود — أنيق
+            </div>
           </div>
         </div>
 
-        <!-- Executive -->
-        <div class="template-card" data-template="executive" onclick="selectTemplate(this)">
-          <div class="template-preview template-preview-executive">
-            <div class="tp-name" style="letter-spacing:3px;">━━━━━━━━</div>
-            <div class="tp-contact">▪ ▪ ▪</div>
-            <div class="tp-thin-line"></div>
-            <div class="tp-text"></div>
-            <div class="tp-text short"></div>
-            <div class="tp-thin-line"></div>
+        <!-- Creative -->
+        <div class="template-card" data-template="creative" onclick="selectTemplate(this)">
+          <div class="template-preview">
+            <div style="background:var(--resume-accent); padding: 6px; border-radius: 4px; margin-bottom: 8px;">
+              <div class="tp-name" style="color:#fff; margin:0; text-align:right;">━━━━━━</div>
+            </div>
+            <div style="border-right: 3px solid var(--resume-accent); padding-right: 4px; margin-bottom: 6px;">
+              <div class="tp-text"></div>
+            </div>
             <div class="tp-text"></div>
             <div class="tp-text short"></div>
           </div>
           <div class="template-info">
-            <div class="template-name" data-ar="تنفيذي" data-en="Executive">تنفيذي</div>
-            <div class="template-desc" data-ar="مينيمال راقي — أبيض وأسود" data-en="Minimal & elegant — B&W">مينيمال راقي — أبيض وأسود</div>
+            <div class="template-name" data-ar="إبداعي" data-en="Creative">إبداعي</div>
+            <div class="template-desc" data-ar="مساحة لونية بارزة" data-en="Prominent color block">مساحة لونية بارزة
+            </div>
           </div>
         </div>
 
+        <!-- Innovative -->
+        <div class="template-card" data-template="innovative" onclick="selectTemplate(this)">
+          <div class="template-preview">
+            <div
+              style="display:flex; justify-content:space-between; border-bottom:3px solid var(--resume-accent); padding-bottom:4px; margin-bottom:8px;">
+              <div class="tp-name" style="margin:0;">━━━━━━</div>
+              <div class="tp-contact" style="margin:0;">▪ ▪</div>
+            </div>
+            <div
+              style="background:#f3f4f6; padding:4px; border-right: 2px solid var(--resume-accent); margin-bottom: 6px;">
+              <div class="tp-text short" style="background:#aaa;"></div>
+            </div>
+            <div class="tp-text"></div>
+            <div class="tp-text short"></div>
+          </div>
+          <div class="template-info">
+            <div class="template-name" data-ar="مبتكر" data-en="Innovative">مبتكر</div>
+            <div class="template-desc" data-ar="لمسات هندسية" data-en="Geometric touches">لمسات هندسية</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category 4 -->
+      <h3 style="font-size: 16px; margin: 20px 0 12px; color: var(--text-primary);" data-ar="👤 مع صورة شخصية"
+        data-en="👤 With Photo">👤 مع صورة شخصية</h3>
+      <div class="template-grid">
         <!-- With Photo -->
         <div class="template-card" data-template="photo" onclick="selectTemplate(this)">
-          <div class="template-preview template-preview-photo">
+          <div class="template-preview">
             <div class="tp-photo-circle">👤</div>
             <div class="tp-name">━━━━━━━━</div>
             <div class="tp-line"></div>
@@ -222,7 +371,8 @@
           </div>
           <div class="template-info">
             <div class="template-name" data-ar="بالصورة" data-en="With Photo">بالصورة</div>
-            <div class="template-desc" data-ar="صورة شخصية — أبيض وأسود" data-en="Personal photo — B&W">صورة شخصية — أبيض وأسود</div>
+            <div class="template-desc" data-ar="صورة شخصية أعلى السيرة" data-en="Photo header">صورة شخصية أعلى السيرة
+            </div>
           </div>
         </div>
 
@@ -243,17 +393,41 @@
             </div>
           </div>
           <div class="template-info">
-            <div class="template-name" data-ar="عمودين بالصورة" data-en="Two Column + Photo">عمودين بالصورة</div>
-            <div class="template-desc" data-ar="شريط جانبي رمادي + صورة" data-en="Gray sidebar + photo">شريط جانبي رمادي + صورة</div>
+            <div class="template-name" data-ar="عمودين بالصورة" data-en="Two Col + Photo">عمودين بالصورة</div>
+            <div class="template-desc" data-ar="شريط جانبي للشخصيات" data-en="Sidebar for details">شريط جانبي للشخصيات
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Photo upload (shown when photo template is selected) -->
       <div class="form-group" id="photoUploadGroup" style="display:none; margin-top:16px;">
-        <label class="form-label" data-ar="📷 ارفع صورتك الشخصية" data-en="📷 Upload Your Photo">📷 ارفع صورتك الشخصية</label>
+        <label class="form-label" data-ar="📷 ارفع صورتك الشخصية" data-en="📷 Upload Your Photo">📷 ارفع صورتك
+          الشخصية</label>
         <input type="file" class="form-input" id="photoUpload" accept="image/*" onchange="handlePhotoUpload(event)">
         <div id="photoPreviewSmall" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- Theme Color Picker -->
+      <div class="form-group" style="margin-top:24px;">
+        <label class="form-label" data-ar="🎨 اختر لوناً رئيسياً للقالب" data-en="🎨 Choose a Primary Color">🎨 اختر
+          لوناً رئيسياً للقالب</label>
+        <div class="color-picker" id="colorPicker">
+          <div class="color-swatch selected" style="background-color: #2563eb;" data-color="#2563eb"
+            onclick="selectColor(this)"></div>
+          <div class="color-swatch" style="background-color: #10b981;" data-color="#10b981" onclick="selectColor(this)">
+          </div>
+          <div class="color-swatch" style="background-color: #f59e0b;" data-color="#f59e0b" onclick="selectColor(this)">
+          </div>
+          <div class="color-swatch" style="background-color: #ef4444;" data-color="#ef4444" onclick="selectColor(this)">
+          </div>
+          <div class="color-swatch" style="background-color: #8b5cf6;" data-color="#8b5cf6" onclick="selectColor(this)">
+          </div>
+          <div class="color-swatch" style="background-color: #ec4899;" data-color="#ec4899" onclick="selectColor(this)">
+          </div>
+          <div class="color-swatch" style="background-color: #1f2937;" data-color="#1f2937" onclick="selectColor(this)">
+          </div>
+        </div>
       </div>
 
       <div class="nav-buttons">
@@ -265,7 +439,8 @@
     <!-- ===== STEP 3: Personal Info ===== -->
     <div class="form-card step-content" id="step3" style="display:none;">
       <h2 class="form-card-title" data-ar="البيانات الشخصية" data-en="Personal Information">البيانات الشخصية</h2>
-      <p class="form-card-subtitle" data-ar="أدخل معلوماتك الأساسية" data-en="Enter your basic information">أدخل معلوماتك الأساسية</p>
+      <p class="form-card-subtitle" data-ar="أدخل معلوماتك الأساسية" data-en="Enter your basic information">أدخل
+        معلوماتك الأساسية</p>
       <div class="form-group">
         <label class="form-label" data-ar="الاسم الكامل *" data-en="Full Name *">الاسم الكامل *</label>
         <input type="text" class="form-input" id="fullName" required>
@@ -278,22 +453,46 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" data-ar="البريد الإلكتروني *" data-en="Email *">البريد الإلكتروني *</label>
-          <input type="email" class="form-input" id="email" dir="ltr">
+          <input type="email" class="form-input" id="email" dir="ltr" placeholder="example@domain.com">
         </div>
         <div class="form-group">
-          <label class="form-label" data-ar="رقم الهاتف" data-en="Phone">رقم الهاتف</label>
-          <input type="tel" class="form-input" id="phone" dir="ltr">
+          <label class="form-label" data-ar="رقم الهاتف *" data-en="Phone *">رقم الهاتف *</label>
+          <input type="tel" class="form-input" id="phone" dir="ltr" style="width: 100%;">
         </div>
       </div>
+
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label" data-ar="الموقع / المدينة" data-en="Location">الموقع / المدينة</label>
-          <input type="text" class="form-input" id="location">
+          <label class="form-label" data-ar="الدولة *" data-en="Country *">الدولة *</label>
+          <select class="form-select" id="countrySelect" onchange="loadCities()">
+            <option value="" data-ar="-- اختر الدولة --" data-en="-- Select Country --">-- اختر الدولة --</option>
+          </select>
         </div>
         <div class="form-group">
-          <label class="form-label" data-ar="LinkedIn (اختياري)" data-en="LinkedIn (optional)">LinkedIn (اختياري)</label>
-          <input type="url" class="form-input" id="linkedin" dir="ltr">
+          <label class="form-label" data-ar="المدينة *" data-en="City *">المدينة *</label>
+          <select class="form-select" id="citySelect" disabled>
+            <option value="" data-ar="-- اختر المدينة أولاً --" data-en="-- Select City --">-- اختر الدولة أولاً --
+            </option>
+          </select>
         </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" data-ar="LinkedIn (اختياري)" data-en="LinkedIn (optional)">LinkedIn
+            (اختياري)</label>
+          <input type="url" class="form-input" id="linkedin" dir="ltr" placeholder="https://linkedin.com/in/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-ar="GitHub (للمبرمجين)" data-en="GitHub (for IT)">GitHub (للمبرمجين)</label>
+          <input type="url" class="form-input" id="github" dir="ltr" placeholder="https://github.com/...">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-ar="البورتفوليو / الموقع (اختياري)"
+          data-en="Portfolio / Website (optional)">البورتفوليو / الموقع (اختياري)</label>
+        <input type="url" class="form-input" id="portfolio" dir="ltr" placeholder="https://...">
       </div>
       <div class="nav-buttons">
         <button class="nav-btn prev" onclick="prevStep()" data-ar="→ السابق" data-en="← Previous">→ السابق</button>
@@ -304,10 +503,10 @@
     <!-- ===== STEP 4: Summary ===== -->
     <div class="form-card step-content" id="step4" style="display:none;">
       <h2 class="form-card-title" data-ar="الملخص المهني" data-en="Professional Summary">الملخص المهني</h2>
-      <p class="form-card-subtitle" data-ar="اكتب ملخصاً مهنياً موجزاً" data-en="Write a brief professional summary">اكتب ملخصاً مهنياً موجزاً</p>
+      <p class="form-card-subtitle" data-ar="اكتب ملخصاً مهنياً موجزاً" data-en="Write a brief professional summary">
+        اكتب ملخصاً مهنياً موجزاً</p>
       <div class="form-group">
-        <textarea class="form-textarea" id="summary" rows="6" placeholder="مثال: مهندس برمجيات ذو خبرة تزيد عن 5 سنوات..."></textarea>
-        <div class="ai-review-result" id="review-summary"></div>
+        <textarea class="form-textarea" id="summary" rows="8" placeholder="مثال: متخصص طموح ذو خبرة في..."></textarea>
       </div>
       <div class="nav-buttons">
         <button class="nav-btn prev" onclick="prevStep()" data-ar="→ السابق" data-en="← Previous">→ السابق</button>
@@ -319,7 +518,8 @@
     <div class="form-card step-content" id="step5" style="display:none;">
       <h2 class="form-card-title" data-ar="الخبرات العملية" data-en="Work Experience">الخبرات العملية</h2>
       <div class="experience-entries" id="experienceEntries"></div>
-      <button class="add-entry-btn" onclick="addExperience()" data-ar="+ إضافة خبرة جديدة" data-en="+ Add Experience">+ إضافة خبرة جديدة</button>
+      <button class="add-entry-btn" onclick="addExperience()" data-ar="+ إضافة خبرة جديدة" data-en="+ Add Experience">+
+        إضافة خبرة جديدة</button>
       <div class="nav-buttons">
         <button class="nav-btn prev" onclick="prevStep()" data-ar="→ السابق" data-en="← Previous">→ السابق</button>
         <button class="nav-btn next" onclick="nextStep()" data-ar="التالي ←" data-en="Next →">التالي ←</button>
@@ -330,9 +530,11 @@
     <div class="form-card step-content" id="step6" style="display:none;">
       <h2 class="form-card-title" data-ar="التعليم والشهادات" data-en="Education">التعليم والشهادات</h2>
       <div id="educationEntries"></div>
-      <button class="add-entry-btn" onclick="addEducation()" data-ar="+ إضافة مؤهل" data-en="+ Add Education">+ إضافة مؤهل</button>
+      <button class="add-entry-btn" onclick="addEducation()" data-ar="+ إضافة مؤهل" data-en="+ Add Education">+ إضافة
+        مؤهل</button>
       <div style="margin-top:24px;">
-        <label class="form-label" data-ar="الشهادات المهنية (كل شهادة في سطر)" data-en="Certifications (one per line)">الشهادات المهنية (كل شهادة في سطر)</label>
+        <label class="form-label" data-ar="الشهادات المهنية (كل شهادة في سطر)"
+          data-en="Certifications (one per line)">الشهادات المهنية (كل شهادة في سطر)</label>
         <textarea class="form-textarea" id="certifications" rows="3" placeholder="AWS Certified&#10;PMP"></textarea>
       </div>
       <div style="margin-top:20px;">
@@ -349,10 +551,21 @@
     <div class="form-card step-content" id="step7" style="display:none;">
       <h2 class="form-card-title" data-ar="المهارات" data-en="Skills">المهارات</h2>
       <div class="skills-input-container">
-        <input type="text" class="form-input" id="skillInput" placeholder="اكتب مهارة واضغط إضافة..." onkeypress="if(event.key==='Enter'){event.preventDefault();addSkill();}">
+        <input type="text" class="form-input" id="skillInput" placeholder="اكتب مهارة واضغط إضافة..."
+          onkeypress="if(event.key==='Enter'){event.preventDefault();addSkill();}">
         <button class="add-skill-btn" onclick="addSkill()" data-ar="إضافة" data-en="Add">إضافة</button>
       </div>
-      <div class="skills-chips" id="skillsChips"></div>
+      <div class="skills-chips" id="skillsChips" style="margin-bottom: 15px;"></div>
+
+      <!-- Suggested Skills -->
+      <div id="suggestedSkillsContainer"
+        style="display:none; margin-top: 10px; padding: 12px; background: rgba(99, 102, 241, 0.05); border-radius: 8px; border: 1px dashed var(--border);">
+        <label class="form-label" style="font-size:12px; margin-bottom:8px; display:flex; gap:6px; align-items:center;">
+          <span data-ar="💡 مهارات مقترحة (انقر للإضافة)" data-en="💡 Suggested skills (Click to add)">💡 مهارات مقترحة
+            (انقر للإضافة)</span>
+        </label>
+        <div class="skills-chips" id="suggestedSkillsChips" style="gap:6px;"></div>
+      </div>
       <div class="ai-review-result" id="review-skills"></div>
       <div class="nav-buttons">
         <button class="nav-btn prev" onclick="prevStep()" data-ar="→ السابق" data-en="← Previous">→ السابق</button>
@@ -365,15 +578,25 @@
       <h2 class="form-card-title" data-ar="معاينة وتحميل" data-en="Preview & Download">معاينة وتحميل</h2>
       <div class="preview-container" id="resumePreview"></div>
 
+      <div class="form-group" style="margin-top:20px; text-align:left;">
+        <label class="form-label" data-ar="الوصف الوظيفي المستهدف (اختياري للتحقق من ATS)"
+          data-en="Target Job Description (Optional for ATS Check)">الوصف الوظيفي المستهدف (اختياري للتحقق من
+          ATS)</label>
+        <textarea class="form-textarea" id="targetJob" rows="4"
+          placeholder="Paste the job description here to see how well your resume matches..."></textarea>
+      </div>
+
       <div class="ats-score-card" id="atsScoreCard" style="display:none;">
         <div class="ats-score-circle" id="atsScoreCircle">--</div>
-        <p style="color:var(--text-secondary); font-size:14px;" data-ar="نسبة التوافق مع ATS" data-en="ATS Compatibility Score">نسبة التوافق مع ATS</p>
+        <p style="color:var(--text-secondary); font-size:14px;" data-ar="نسبة التوافق مع ATS"
+          data-en="ATS Compatibility Score">نسبة التوافق مع ATS</p>
         <div class="ats-tips" id="atsTips"></div>
       </div>
 
       <div style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;">
         <button class="ai-btn" id="atsCheckBtn" onclick="checkATS()">
-          <span class="btn-text">🔍<span data-ar="فحص التوافق مع ATS" data-en="Check ATS Compatibility">فحص التوافق مع ATS</span></span>
+          <span class="btn-text">🔍<span data-ar="فحص التوافق مع ATS" data-en="Check ATS Compatibility">فحص التوافق مع
+              ATS</span></span>
           <div class="spinner"></div>
         </button>
       </div>
@@ -381,8 +604,10 @@
       <div class="nav-buttons">
         <button class="nav-btn prev" onclick="prevStep()" data-ar="→ السابق" data-en="← Previous">→ السابق</button>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="nav-btn download" onclick="viewAsHTML()" style="background: #2563eb;" data-ar="🖨️ عرض وطباعة" data-en="🖨️ View & Print">🖨️ عرض وطباعة</button>
-          <button class="nav-btn download" onclick="downloadPDF()" data-ar="📥 تحميل PDF" data-en="📥 Download PDF">📥 تحميل PDF</button>
+          <button class="nav-btn download" onclick="viewAsHTML()" style="background: #2563eb;" data-ar="🖨️ عرض وطباعة"
+            data-en="🖨️ View & Print">🖨️ عرض وطباعة</button>
+          <button class="nav-btn download" onclick="downloadPDF()" data-ar="📥 تحميل PDF" data-en="📥 Download PDF">📥
+            تحميل PDF</button>
         </div>
       </div>
     </div>
@@ -396,15 +621,21 @@
 
   <!-- Footer -->
   <footer style="text-align:center; padding:32px 16px 20px; position:relative; z-index:1;">
-    <div style="display:inline-flex; align-items:center; gap:8px; padding:10px 24px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:30px; backdrop-filter:blur(10px);">
+    <div
+      style="display:inline-flex; align-items:center; gap:8px; padding:10px 24px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:30px; backdrop-filter:blur(10px);">
       <span style="font-size:13px; color:#5a5a6e;">Developed by</span>
-      <span style="font-size:14px; font-weight:700; background:linear-gradient(135deg, #6366f1, #a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Mo7aMMed El-Shamii</span>
+      <a href="https://www.linkedin.com/in/melshami-undefined-a23a103b3" target="_blank"
+        style="font-size:14px; font-weight:700; background:linear-gradient(135deg, #6366f1, #a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; text-decoration:none;">Mo7aMMed
+        El-Shamii</a>
     </div>
   </footer>
 
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
+  <!-- Intl Tel Input -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
   <script src="/js/app.js"></script>
 </body>
+
 </html>

@@ -4,6 +4,7 @@ let totalSteps = 8;
 let currentLang = 'ar';
 let selectedSpecialization = '';
 let selectedTemplate = 'classic';
+let selectedColor = '#2563eb';
 let userPhotoBase64 = '';
 let skills = [];
 let experienceCount = 0;
@@ -76,14 +77,14 @@ function prevStep() {
 function validateCurrentStep() {
   switch (currentStep) {
     case 1:
+      const manualInput = document.getElementById('manualSpecInput');
+      if (manualInput && manualInput.value.trim()) {
+        selectedSpecialization = manualInput.value.trim();
+      }
+
       if (!selectedSpecialization) {
-        const customSpec = document.getElementById('customSpec');
-        if (customSpec && customSpec.value.trim()) {
-          selectedSpecialization = customSpec.value.trim();
-        } else {
-          showToast(currentLang === 'ar' ? 'يرجى اختيار تخصصك' : 'Please select a specialization', 'error');
-          return false;
-        }
+        showToast(currentLang === 'ar' ? 'يرجى إدخال أو اختيار تخصصك' : 'Please enter or select a specialization', 'error');
+        return false;
       }
       return true;
     case 2:
@@ -95,8 +96,24 @@ function validateCurrentStep() {
     case 3:
       const name = document.getElementById('fullName').value.trim();
       const email = document.getElementById('email').value.trim();
-      if (!name) { showToast(currentLang === 'ar' ? 'يرجى إدخال الاسم' : 'Please enter your name', 'error'); return false; }
-      if (!email) { showToast(currentLang === 'ar' ? 'يرجى إدخال البريد' : 'Please enter your email', 'error'); return false; }
+      const phoneVal = document.getElementById('phone').value.trim();
+
+      if (!name) {
+        showToast(currentLang === 'ar' ? 'يرجى إدخال الاسم' : 'Please enter your name', 'error');
+        return false;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email || !emailRegex.test(email)) {
+        showToast(currentLang === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email', 'error');
+        return false;
+      }
+
+      if (phoneVal && window.iti && !window.iti.isValidNumber()) {
+        showToast(currentLang === 'ar' ? 'يرجى إدخال رقم هاتف صحيح مع رمز الدولة' : 'Please enter a valid phone number with country code', 'error');
+        return false;
+      }
+
       return true;
     default:
       return true;
@@ -104,13 +121,19 @@ function validateCurrentStep() {
 }
 
 // ===== SPECIALIZATION =====
+function clearSpecSelection() {
+  document.querySelectorAll('.spec-card').forEach(c => c.classList.remove('selected'));
+  selectedSpecialization = '';
+}
+
 function selectSpec(el) {
   document.querySelectorAll('.spec-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   const specAttr = currentLang === 'ar' ? 'data-spec' : 'data-spec-en';
   selectedSpecialization = el.getAttribute(specAttr) || el.getAttribute('data-spec');
-  const customGroup = document.getElementById('customSpecGroup');
-  customGroup.style.display = el.getAttribute('data-spec') === 'أخرى' ? 'block' : 'none';
+
+  const manualInput = document.getElementById('manualSpecInput');
+  if (manualInput) manualInput.value = '';
 }
 
 // ===== TEMPLATE SELECTION =====
@@ -123,6 +146,24 @@ function selectTemplate(el) {
   const photoGroup = document.getElementById('photoUploadGroup');
   const needsPhoto = (selectedTemplate === 'photo' || selectedTemplate === 'twocolumn');
   photoGroup.style.display = needsPhoto ? 'block' : 'none';
+}
+
+// ===== COLOR SELECTION =====
+function selectColor(el) {
+  document.querySelectorAll('.color-swatch').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColor = el.getAttribute('data-color');
+
+  // Apply to document for live template preview updates
+  document.documentElement.style.setProperty('--resume-accent', selectedColor);
+
+  // Instantly apply to preview if visible
+  const preview = document.getElementById('resumePreview');
+  if (preview) {
+    preview.style.setProperty('--resume-accent', selectedColor);
+    // Force a re-render to update the HTML inline styles if any
+    if (currentStep === 8) renderPreview();
+  }
 }
 
 function handlePhotoUpload(event) {
@@ -161,16 +202,35 @@ function addExperience() {
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">${isAr ? 'تاريخ البدء' : 'Start Date'}</label>
-          <input type="month" class="form-input" id="expStart-${id}">
+          <input type="month" class="form-input" id="expStart-${id}" onchange="validateDates(${id})">
         </div>
         <div class="form-group">
-          <label class="form-label">${isAr ? 'تاريخ الانتهاء' : 'End Date'}</label>
-          <input type="month" class="form-input" id="expEnd-${id}">
+          <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>${isAr ? 'تاريخ الانتهاء' : 'End Date'}</span>
+            <label style="font-size:11px; font-weight:normal; display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" id="expPresent-${id}" onchange="toggleEndDate(${id})"> 
+              ${isAr ? 'أعمل هنا حالياً' : 'Currently working here'}
+            </label>
+          </label>
+          <input type="month" class="form-input" id="expEnd-${id}" onchange="validateDates(${id})">
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">${isAr ? 'وصف المهام والإنجازات' : 'Duties & Achievements'}</label>
-        <textarea class="form-textarea" id="expDesc-${id}" rows="4" oninput="debouncedReview('expDesc-${id}', 'experience')"></textarea>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label class="form-label" style="margin-bottom:0;">${isAr ? 'وصف المهام (استخدم - لعمل قائمة نقطية)' : 'Duties (Use - for bullet points)'}</label>
+          <div style="display:flex; gap:8px;">
+            <select class="form-input" style="padding:2px 6px; font-size:11px; border-radius:4px; height:auto;" onchange="insertPowerVerb(this, 'expDesc-${id}')">
+              <option value="">${isAr ? 'أفعال قوية' : 'Power Verbs'}</option>
+              <option value="${isAr ? 'أدرت ' : 'Managed '}">${isAr ? 'أدرت' : 'Managed'}</option>
+              <option value="${isAr ? 'طورت ' : 'Developed '}">${isAr ? 'طورت' : 'Developed'}</option>
+              <option value="${isAr ? 'قدت ' : 'Led '}">${isAr ? 'قدت' : 'Led'}</option>
+              <option value="${isAr ? 'حققت ' : 'Achieved '}">${isAr ? 'حققت' : 'Achieved'}</option>
+              <option value="${isAr ? 'حسّنت ' : 'Improved '}">${isAr ? 'حسّنت' : 'Improved'}</option>
+              <option value="${isAr ? 'صممت ' : 'Designed '}">${isAr ? 'صممت' : 'Designed'}</option>
+            </select>
+          </div>
+        </div>
+        <textarea class="form-textarea" id="expDesc-${id}" rows="4" oninput="debouncedReview('expDesc-${id}', 'experience')" placeholder="${isAr ? '- طورت نظاماً...\n- أدرت فريقاً...' : '- Developed a system...\n- Managed a team...'}"></textarea>
         <div class="ai-review-result" id="review-expDesc-${id}"></div>
       </div>
     </div>
@@ -181,6 +241,56 @@ function addExperience() {
 function removeEntry(entryId) {
   const el = document.getElementById(entryId);
   if (el) { el.style.animation = 'fadeInUp 0.3s ease reverse'; setTimeout(() => el.remove(), 200); }
+}
+
+// ===== EXPERIENCES HELPERS =====
+function toggleEndDate(id) {
+  const isPresent = document.getElementById(`expPresent-${id}`).checked;
+  const endInput = document.getElementById(`expEnd-${id}`);
+  if (isPresent) {
+    endInput.disabled = true;
+    endInput.value = '';
+  } else {
+    endInput.disabled = false;
+  }
+}
+
+function validateDates(id) {
+  const startInput = document.getElementById(`expStart-${id}`);
+  const endInput = document.getElementById(`expEnd-${id}`);
+  if (startInput.value && endInput.value && !endInput.disabled) {
+    if (new Date(startInput.value) > new Date(endInput.value)) {
+      showToast(currentLang === 'ar' ? 'تاريخ البدء يجب أن يكون قبل تاريخ الانتهاء' : 'Start date must be before end date', 'error');
+      endInput.value = '';
+    }
+  }
+}
+
+function insertPowerVerb(selectEl, textAreaId) {
+  const val = selectEl.value;
+  if (!val) return;
+  const textarea = document.getElementById(textAreaId);
+  if (!textarea) return;
+
+  const startPos = textarea.selectionStart;
+  const text = textarea.value;
+  const prefix = text.substring(0, startPos);
+
+  // Auto-add hyphen if on a new line and it's not there
+  const lastLine = prefix.split('\\n').pop() || '';
+  let insertText = val;
+  if (!lastLine.trim().startsWith('-')) {
+    insertText = '- ' + val;
+  }
+
+  textarea.value = text.substring(0, startPos) + insertText + text.substring(textarea.selectionEnd, text.length);
+  const newPos = startPos + insertText.length;
+  textarea.setSelectionRange(newPos, newPos);
+  textarea.focus();
+
+  selectEl.value = ''; // Reset select
+  saveState();
+  debouncedReview(textAreaId, 'experience');
 }
 
 // ===== EDUCATION =====
@@ -215,14 +325,27 @@ function addEducation() {
 }
 
 // ===== SKILLS =====
+const roleSkills = {
+  software: ['JavaScript', 'Python', 'React', 'Node.js', 'SQL', 'Git', 'Agile', 'REST APIs', 'AWS', 'Docker'],
+  data: ['Python', 'SQL', 'Tableau', 'Power BI', 'Machine Learning', 'Data Visualization', 'Statistics', 'Excel'],
+  design: ['Adobe Photoshop', 'Illustrator', 'Figma', 'UI/UX Design', 'Typography', 'Branding', 'HTML/CSS'],
+  marketing: ['SEO', 'Google Analytics', 'Content Strategy', 'Social Media Marketing', 'Email Campaigns', 'CRM', 'Copywriting'],
+  sales: ['B2B Sales', 'CRM', 'Negotiation', 'Lead Generation', 'Client Relations', 'Account Management', 'Cold Calling'],
+  hr: ['Recruitment', 'Employee Relations', 'Performance Management', 'HRIS', 'Onboarding', 'Talent Acquisition'],
+  customer_service: ['Communication', 'Conflict Resolution', 'CRM', 'Problem Solving', 'Time Management', 'Empathy', 'Active Listening'],
+  teacher: ['Curriculum Development', 'Classroom Management', 'Lesson Planning', 'Special Education', 'Educational Technology', 'Assessment'],
+  accountant: ['Financial Reporting', 'GAAP', 'QuickBooks', 'Tax Preparation', 'Reconciliation', 'Auditing', 'Excel (Advanced)'],
+  admin: ['Office Management', 'Data Entry', 'Scheduling', 'Microsoft Office', 'Customer Service', 'Event Planning', 'Inventory Management']
+};
+
 function addSkill(skillName) {
   const input = document.getElementById('skillInput');
-  const name = skillName || input.value.trim();
+  const name = typeof skillName === 'string' ? skillName : input.value.trim();
   if (!name) return;
   if (skills.includes(name)) { showToast(currentLang === 'ar' ? 'المهارة موجودة بالفعل' : 'Skill already added', 'error'); return; }
   skills.push(name);
   renderSkills();
-  if (!skillName) input.value = '';
+  if (typeof skillName !== 'string') input.value = '';
 }
 
 function removeSkill(idx) { skills.splice(idx, 1); renderSkills(); }
@@ -231,6 +354,52 @@ function renderSkills() {
   document.getElementById('skillsChips').innerHTML = skills.map((s, i) => `
     <div class="skill-chip">${s}<span class="remove-skill" onclick="removeSkill(${i})">✕</span></div>
   `).join('');
+  renderSuggestedSkills();
+}
+
+function renderSuggestedSkills() {
+  const container = document.getElementById('suggestedSkillsContainer');
+  const chipsDiv = document.getElementById('suggestedSkillsChips');
+  if (!container || !chipsDiv) return;
+
+  if (!selectedSpecialization || !roleSkills[selectedSpecialization]) {
+    container.style.display = 'none';
+    return;
+  }
+
+  const suggested = roleSkills[selectedSpecialization].filter(s => !skills.includes(s));
+
+  if (suggested.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+  chipsDiv.innerHTML = suggested.map(s => `
+    <div class="skill-chip" style="background:var(--bg-card); border-color:var(--primary); color:var(--primary); cursor:pointer;" onclick="addSkill('${s}')">+ ${s}</div>
+  `).join('');
+}
+
+// ===== BULLET POINT FORMATTER =====
+function formatText(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  let html = '';
+  let inList = false;
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+      if (!inList) { html += '<ul style="padding-inline-start: 20px; margin: 4px 0;">'; inList = true; }
+      html += `<li>${trimmed.substring(1).trim()}</li>`;
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      if (trimmed) html += `<div>${trimmed}</div>`;
+    }
+  });
+
+  if (inList) html += '</ul>';
+  return html;
 }
 
 // ===== COLLECT DATA =====
@@ -238,11 +407,12 @@ function collectResumeData() {
   const experiences = [];
   document.querySelectorAll('.exp-entry[id^="exp-"]').forEach(entry => {
     const id = entry.id.replace('exp-', '');
+    const isPresent = document.getElementById(`expPresent-${id}`)?.checked;
     experiences.push({
       title: document.getElementById(`expTitle-${id}`)?.value || '',
       company: document.getElementById(`expCompany-${id}`)?.value || '',
       startDate: document.getElementById(`expStart-${id}`)?.value || '',
-      endDate: document.getElementById(`expEnd-${id}`)?.value || '',
+      endDate: isPresent ? '' : (document.getElementById(`expEnd-${id}`)?.value || ''),
       description: document.getElementById(`expDesc-${id}`)?.value || ''
     });
   });
@@ -255,6 +425,20 @@ function collectResumeData() {
       year: document.getElementById(`eduYear-${id}`)?.value || ''
     });
   });
+  experiences.sort((a, b) => {
+    if (!a.startDate) return 1;
+    if (!b.startDate) return -1;
+    if (!a.endDate && b.endDate) return -1;
+    if (a.endDate && !b.endDate) return 1;
+    return new Date(b.startDate) - new Date(a.startDate);
+  });
+
+  educationList.sort((a, b) => {
+    const yearA = parseInt(a.year) || 0;
+    const yearB = parseInt(b.year) || 0;
+    return yearB - yearA;
+  });
+
   const certs = (document.getElementById('certifications')?.value || '').split('\n').map(c => c.trim()).filter(Boolean);
   const langs = (document.getElementById('languages')?.value || '').split('،').join(',').split(',').map(l => l.trim()).filter(Boolean);
 
@@ -262,12 +446,17 @@ function collectResumeData() {
     fullName: document.getElementById('fullName')?.value || '',
     jobTitle: document.getElementById('jobTitle')?.value || '',
     email: document.getElementById('email')?.value || '',
-    phone: document.getElementById('phone')?.value || '',
-    location: document.getElementById('location')?.value || '',
+    phone: window.iti ? window.iti.getNumber() : (document.getElementById('phone')?.value || ''),
+    location: (document.getElementById('countrySelect')?.value && document.getElementById('citySelect')?.value)
+      ? `${document.getElementById('citySelect').value}, ${document.getElementById('countrySelect').value}`
+      : document.getElementById('countrySelect')?.value || '',
     linkedin: document.getElementById('linkedin')?.value || '',
+    github: document.getElementById('github')?.value || '',
+    portfolio: document.getElementById('portfolio')?.value || '',
     summary: document.getElementById('summary')?.value || '',
     specialization: selectedSpecialization,
     template: selectedTemplate,
+    primaryColor: selectedColor,
     photoBase64: userPhotoBase64,
     experience: experiences,
     education: educationList,
@@ -284,12 +473,20 @@ function renderPreview() {
   const isAr = currentLang === 'ar';
   const container = document.getElementById('resumePreview');
   container.style.direction = isAr ? 'rtl' : 'ltr';
+  container.style.setProperty('--resume-accent', data.primaryColor || '#2563eb');
 
   const labels = isAr
     ? { summary: 'الملخص المهني', experience: 'الخبرة العملية', education: 'التعليم', skills: 'المهارات', certs: 'الشهادات', langs: 'اللغات', present: 'حتى الآن' }
     : { summary: 'Professional Summary', experience: 'Work Experience', education: 'Education', skills: 'Skills', certs: 'Certifications', langs: 'Languages', present: 'Present' };
 
-  const contactParts = [data.email, data.phone, data.location, data.linkedin].filter(Boolean);
+  const contactParts = [
+    data.email,
+    data.phone,
+    data.location,
+    data.linkedin ? `<a href="${data.linkedin}" target="_blank" style="color:var(--resume-accent);text-decoration:none;">LinkedIn</a>` : null,
+    data.github ? `<a href="${data.github}" target="_blank" style="color:var(--resume-accent);text-decoration:none;">GitHub</a>` : null,
+    data.portfolio ? `<a href="${data.portfolio}" target="_blank" style="color:var(--resume-accent);text-decoration:none;">Portfolio</a>` : null
+  ].filter(Boolean);
 
   let html = '';
 
@@ -303,12 +500,12 @@ function renderPreview() {
   if (contactParts.length) html += `<div class="preview-contact">${contactParts.join(' | ')}</div>`;
 
   if (data.summary) {
-    html += `<div class="preview-section-title">${labels.summary}</div>`;
+    html += `<div class="preview-section-title" style="color:var(--resume-accent); border-bottom-color:var(--resume-accent)">${labels.summary}</div>`;
     html += `<p style="font-size:13px;color:#374151;">${data.summary}</p>`;
   }
 
   if (data.experience.length > 0) {
-    html += `<div class="preview-section-title">${labels.experience}</div>`;
+    html += `<div class="preview-section-title" style="color:var(--resume-accent); border-bottom-color:var(--resume-accent)">${labels.experience}</div>`;
     data.experience.forEach(exp => {
       if (!exp.title && !exp.company) return;
       html += `<div style="margin-bottom:10px;">
@@ -322,7 +519,7 @@ function renderPreview() {
   }
 
   if (data.education.length > 0) {
-    html += `<div class="preview-section-title">${labels.education}</div>`;
+    html += `<div class="preview-section-title" style="color:var(--resume-accent); border-bottom-color:var(--resume-accent)">${labels.education}</div>`;
     data.education.forEach(edu => {
       if (!edu.degree && !edu.institution) return;
       html += `<div style="margin-bottom:6px;">
@@ -335,17 +532,17 @@ function renderPreview() {
   }
 
   if (data.skills.length > 0) {
-    html += `<div class="preview-section-title">${labels.skills}</div>`;
-    html += `<div class="preview-skills-list">${data.skills.map(s => `<span class="preview-skill-tag">${s}</span>`).join('')}</div>`;
+    html += `<div class="preview-section-title" style="color:var(--resume-accent); border-bottom-color:var(--resume-accent)">${labels.skills}</div>`;
+    html += `<div class="preview-skills-list">${data.skills.map(s => `<span class="preview-skill-tag" style="background-color: var(--resume-accent); color: white; opacity: 0.9;">${s}</span>`).join('')}</div>`;
   }
 
   if (data.certifications.length > 0) {
-    html += `<div class="preview-section-title">${labels.certs}</div>`;
+    html += `<div class="preview-section-title" style="color:var(--resume-accent); border-bottom-color:var(--resume-accent)">${labels.certs}</div>`;
     data.certifications.forEach(c => { html += `<p style="font-size:13px;color:#374151;">• ${c}</p>`; });
   }
 
   if (data.languages.length > 0) {
-    html += `<div class="preview-section-title">${labels.langs}</div>`;
+    html += `<div class="preview-section-title" style="color:var(--resume-accent); border-bottom-color:var(--resume-accent)">${labels.langs}</div>`;
     html += `<div class="preview-skills-list">${data.languages.map(l => `<span class="preview-skill-tag">${l}</span>`).join('')}</div>`;
   }
 
@@ -359,10 +556,13 @@ async function checkATS() {
   btn.disabled = true;
   try {
     const resumeData = collectResumeData();
+    const targetJobInput = document.getElementById('targetJob')?.value.trim();
+    const targetJob = targetJobInput ? targetJobInput : resumeData.jobTitle;
+
     const response = await fetch('/api/optimize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resumeData, targetJob: resumeData.jobTitle, language: currentLang })
+      body: JSON.stringify({ resumeData, targetJob, language: currentLang })
     });
     const data = await response.json();
     if (data.error) throw new Error(data.error);
@@ -539,8 +739,14 @@ function saveState() {
   try {
     // Collect all input values
     const inputs = {};
-    document.querySelectorAll('.form-input, .form-textarea').forEach(el => {
-      if (el.id) inputs[el.id] = el.value;
+    document.querySelectorAll('.form-input, .form-textarea, .form-select').forEach(el => {
+      if (el.id) {
+        if (el.id === 'phone' && window.iti) {
+          inputs[el.id] = window.iti.getNumber();
+        } else {
+          inputs[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+        }
+      }
     });
 
     const state = {
@@ -548,6 +754,7 @@ function saveState() {
       currentLang,
       selectedSpecialization,
       selectedTemplate,
+      selectedColor,
       userPhotoBase64,
       skills: [...skills],
       experienceCount,
@@ -579,13 +786,19 @@ function loadState() {
     // Restore specialization
     if (state.selectedSpecialization) {
       selectedSpecialization = state.selectedSpecialization;
+      let foundCard = false;
       document.querySelectorAll('.spec-card').forEach(card => {
         const specAr = card.getAttribute('data-spec');
         const specEn = card.getAttribute('data-spec-en');
         if (specAr === selectedSpecialization || specEn === selectedSpecialization) {
           card.classList.add('selected');
+          foundCard = true;
         }
       });
+      if (!foundCard) {
+        const manualInput = document.getElementById('manualSpecInput');
+        if (manualInput) manualInput.value = selectedSpecialization;
+      }
     }
 
     // Restore template
@@ -598,6 +811,15 @@ function loadState() {
       const needsPhoto = (selectedTemplate === 'photo' || selectedTemplate === 'twocolumn');
       const photoGroup = document.getElementById('photoUploadGroup');
       if (photoGroup) photoGroup.style.display = needsPhoto ? 'block' : 'none';
+    }
+
+    // Restore color
+    if (state.selectedColor) {
+      selectedColor = state.selectedColor;
+      document.querySelectorAll('.color-swatch').forEach(c => c.classList.remove('selected'));
+      const cSwatch = document.querySelector(`[data-color="${selectedColor}"]`);
+      if (cSwatch) cSwatch.classList.add('selected');
+      document.documentElement.style.setProperty('--resume-accent', selectedColor);
     }
 
     // Restore photo
@@ -626,8 +848,30 @@ function loadState() {
       setTimeout(() => {
         Object.keys(state.inputs).forEach(id => {
           const el = document.getElementById(id);
-          if (el) el.value = state.inputs[id];
+          if (el) {
+            if (el.type === 'checkbox') el.checked = state.inputs[id];
+            else if (id !== 'phone') el.value = state.inputs[id]; // phone handled separate
+
+            if (id === 'countrySelect') {
+              loadCities();
+            }
+          }
         });
+
+        // Ensure citySelect gets assigned after loadCities runs
+        if (state.inputs['citySelect']) {
+          const cityEl = document.getElementById('citySelect');
+          if (cityEl) cityEl.value = state.inputs['citySelect'];
+        }
+
+        // Restore phone if iti available
+        if (state.inputs['phone'] && window.iti) {
+          window.iti.setNumber(state.inputs['phone']);
+        }
+        // Re-run any UI toggles
+        for (let i = 1; i <= experienceCount; i++) {
+          if (document.getElementById(`expPresent-${i}`)) toggleEndDate(i);
+        }
       }, 50);
     }
 
@@ -656,8 +900,172 @@ function setupAutoSave() {
   // Save state every time step changes — override via wrapper
 }
 
+// ===== RESET ALL =====
+function resetAll() {
+  const msg = currentLang === 'ar' ? 'هل أنت متأكد من إعادة تعيين جميع الحقول؟' : 'Are you sure you want to reset all fields?';
+  if (!confirm(msg)) return;
+
+  // Clear localStorage
+  clearSavedState();
+
+  // Reload the page to guarantee a completely fresh start at Step 1
+  location.reload();
+}
+// ===== SUMMARY ENHANCEMENTS =====
+const summaryTemplates = {
+  software: {
+    en: "Innovative Software Engineer with 5+ years of experience in designing, developing, and deploying scalable web applications. Proficient in modern JavaScript frameworks and scalable backend architectures. Committed to writing clean, maintainable code and solving complex technical challenges.",
+    ar: "مهندس برمجيات مبتكر يتمتع بخبرة تزيد عن 5 سنوات في تصميم وتطوير تطبيقات الويب القابلة للتوسع. متمرس في أطر عمل جافا سكريبت الحديثة وتصميمات الواجهات الخلفية. ملتزم بكتابة كود نظيف وقابل للصيانة وحل التحديات التقنية المعقدة."
+  },
+  data: {
+    en: "Detail-oriented Data Analyst with a strong background in statistical analysis, data mining, and visualization. Proven ability to transform complex datasets into actionable business insights that drive growth and optimize operations.",
+    ar: "محلل بيانات دقيق يتمتع بخلفية قوية في التحليل الإحصائي وتنظيف البيانات وبناء لوحات البيانات. قدرة مثبتة على تحويل مجموعات البيانات المعقدة إلى رؤى أعمال قابلة للتنفيذ تدفع النمو وتحسن العمليات."
+  },
+  design: {
+    en: "Creative Graphic Designer with a passion for visual storytelling and brand identity. Experienced in delivering compelling designs across digital and print media, translating marketing objectives into engaging visual concepts.",
+    ar: "مصمم جرافيك مبدع شغوف بالسرد البصري وهوية العلامة التجارية. ذو خبرة في تقديم تصميمات مقنعة عبر الوسائط الرقمية والمطبوعة، وترجمة أهداف التسويق إلى مفاهيم بصرية جذابة."
+  },
+  marketing: {
+    en: "Results-driven Marketing Specialist with expertise in digital campaigns, SEO, and content strategy. Adept at analyzing market trends to optimize performance and increase brand awareness across multiple channels.",
+    ar: "أخصائي تسويق موجه نحو النتائج، ذو خبرة في الحملات الرقمية وتحسين محركات البحث واستراتيجية المحتوى. بارع في تحليل اتجاهات السوق لتحسين الأداء وزيادة الوعي بالعلامة التجارية عبر قنوات متعددة."
+  },
+  sales: {
+    en: "Dynamic Sales Executive with a track record of exceeding revenue targets and building lasting client relationships. Skilled in negotiation, strategic territory management, and delivering high-impact presentations.",
+    ar: "تنفيذي مبيعات ديناميكي يمتلك سجلاً حافلاً في تجاوز أهداف الإيرادات وبناء علاقات دائمة مع العملاء. ماهر في التفاوض والإدارة الاستراتيجية وتقديم عروض تقديمية عالية التأثير."
+  },
+  hr: {
+    en: "Strategic HR Professional specializing in talent acquisition, employee relations, and organizational development. Dedicated to fostering an inclusive workplace culture that drives employee engagement and company success.",
+    ar: "متخصص موارد بشرية يركز على استقطاب المواهب وعلاقات الموظفين والتطوير التنظيمي. مكرس لتعزيز ثقافة عمل شاملة تدفع مشاركة الموظفين ونجاح الشركة."
+  },
+  customer_service: {
+    en: "Empathetic Customer Service Representative with a proven history of resolving complex inquiries and ensuring high client satisfaction. Excellent communicator adept at maintaining a positive attitude in fast-paced environments.",
+    ar: "ممثل خدمة عملاء متعاطف يمتلك تاريخًا حافلًا في حل الاستفسارات المعقدة وضمان رضا العملاء العالي. متواصل ممتاز وبارع في الحفاظ على موقف إيجابي في بيئات العمل السريعة."
+  },
+  teacher: {
+    en: "Dedicated Educator with a passion for creating engaging, student-centered learning environments. Skilled in curriculum development, classroom management, and fostering academic growth in diverse student populations.",
+    ar: "معلم مكرس شغوف بخلق بيئات تعليمية جذابة تتمحور حول الطالب. ماهر في تطوير المناهج وإدارة الفصول الدراسية وتعزيز النمو الأكاديمي للطلاب بمختلف مستوياتهم."
+  },
+  accountant: {
+    en: "Meticulous Financial Accountant with comprehensive experience in ledger management, financial reporting, and tax compliance. Strong analytical skills with a focus on streamlining processes and ensuring fiscal accuracy.",
+    ar: "محاسب مالي دقيق يمتلك خبرة شاملة في إدارة الدفاتر والتقارير المالية والامتثال الضريبي. مهارات تحليلية قوية مع التركيز على تبسيط العمليات وضمان الدقة المالية."
+  },
+  admin: {
+    en: "Organized Administrative Assistant adept at managing office operations, executive scheduling, and document control. Proactive problem-solver dedicated to ensuring organizational efficiency and seamless daily workflows.",
+    ar: "مساعد إداري منظم وبارع في إدارة عمليات المكتب وجدولة المواعيد الرئاسية ومراقبة المستندات. مبادر في حل المشكلات ومكرس لضمان الكفاءة التنظيمية وسير العمل اليومي بسلاسة."
+  }
+};
+
+function applySummaryTemplate() {
+  const select = document.getElementById('summaryTemplate');
+  const val = select.value;
+  if (!val || !summaryTemplates[val]) return;
+
+  const text = summaryTemplates[val][currentLang];
+  const summaryEl = document.getElementById('summary');
+
+  if (summaryEl.value.trim() !== '') {
+    const confirmMsg = currentLang === 'ar' ? 'هل تريد استبدال الملخص الحالي بهذا النموذج؟' : 'Do you want to replace your current summary with this template?';
+    if (!confirm(confirmMsg)) {
+      select.value = "";
+      return;
+    }
+  }
+
+  summaryEl.value = text;
+  saveState();
+  debouncedReview('summary', 'summary');
+}
+
+async function improveSummaryWithAI() {
+  const summaryEl = document.getElementById('summary');
+  const text = summaryEl.value.trim();
+  const jobTitle = document.getElementById('jobTitle')?.value.trim();
+
+  if (!text) {
+    showToast(
+      currentLang === 'ar' ? 'يرجى كتابة بعض الجمل في الملخص أولاً ليقوم الذكاء الاصطناعي بتحسينها.' : 'Please write a few sentences in the summary first for the AI to improve.',
+      'error'
+    );
+    return;
+  }
+
+  const btn = document.getElementById('improveSummaryBtn');
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = currentLang === 'ar' ? '⏳ جاري التحسين...' : '⏳ Improving...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/improve-summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ summary: text, jobTitle, language: currentLang })
+    });
+
+    if (!res.ok) throw new Error('API Error');
+    const data = await res.json();
+
+    if (data.improvedSummary) {
+      summaryEl.value = data.improvedSummary;
+      saveState();
+      debouncedReview('summary', 'summary');
+      showToast(
+        currentLang === 'ar' ? 'تم تحسين الملخص بنجاح!' : 'Summary improved successfully!',
+        'success'
+      );
+    }
+  } catch (err) {
+    console.error(err);
+    showToast(
+      currentLang === 'ar' ? 'حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.' : 'Failed to connect to AI service.',
+      'error'
+    );
+  } finally {
+    btn.innerHTML = origHTML;
+    btn.disabled = false;
+  }
+}
+
 // ===== INIT =====
-document.addEventListener('DOMContentLoaded', () => {
+window.iti = null;
+window.countryData = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize Intl-Tel-Input
+  const phoneInput = document.getElementById("phone");
+  if (phoneInput && typeof intlTelInput !== 'undefined') {
+    window.iti = intlTelInput(phoneInput, {
+      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js",
+      initialCountry: "auto",
+      geoIpLookup: function (success, failure) {
+        fetch("https://ipapi.co/json")
+          .then(res => res.json())
+          .then(data => success(data.country_code))
+          .catch(() => success("us"));
+      },
+      separateDialCode: true
+    });
+  }
+
+  // Fetch Country and City data
+  try {
+    const response = await fetch('https://countriesnow.space/api/v0.1/countries');
+    const json = await response.json();
+    if (!json.error) {
+      window.countryData = json.data;
+      const countrySelect = document.getElementById('countrySelect');
+      if (countrySelect) {
+        window.countryData.forEach(item => {
+          const option = document.createElement('option');
+          option.value = item.country;
+          option.textContent = item.country;
+          countrySelect.appendChild(option);
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load countries', e);
+  }
+
   const loaded = loadState();
   if (!loaded) {
     addExperience();
@@ -682,6 +1090,10 @@ selectSpec = function (el) { _origSelectSpec(el); saveState(); };
 const _origSelectTemplate = selectTemplate;
 selectTemplate = function (el) { _origSelectTemplate(el); saveState(); };
 
+// Override selectColor to auto-save
+const _origSelectColor = selectColor;
+selectColor = function (el) { _origSelectColor(el); saveState(); };
+
 // Override addSkill to auto-save + live review
 const _origAddSkill = addSkill;
 addSkill = function (s) { _origAddSkill(s); saveState(); debouncedReview('skills', 'skills'); };
@@ -696,3 +1108,27 @@ nextStep = function () { _origNextStep(); saveState(); };
 
 const _origPrevStep = prevStep;
 prevStep = function () { _origPrevStep(); saveState(); };
+
+// Location Helper
+window.loadCities = function () {
+  const countrySelect = document.getElementById('countrySelect');
+  const citySelect = document.getElementById('citySelect');
+  if (!countrySelect || !citySelect) return;
+
+  citySelect.innerHTML = `<option value="">-- ${currentLang === 'ar' ? 'اختر المدينة' : 'Select City'} --</option>`;
+  citySelect.disabled = true;
+
+  const selectedCountry = countrySelect.value;
+  if (!selectedCountry) return;
+
+  const countryObj = window.countryData.find(c => c.country === selectedCountry);
+  if (countryObj && countryObj.cities.length > 0) {
+    citySelect.disabled = false;
+    countryObj.cities.forEach(city => {
+      const option = document.createElement('option');
+      option.value = city;
+      option.textContent = city;
+      citySelect.appendChild(option);
+    });
+  }
+};

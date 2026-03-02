@@ -136,6 +136,45 @@ app.post('/api/optimize', async (req, res) => {
   }
 });
 
+// API: Improve Summary
+app.post('/api/improve-summary', async (req, res) => {
+  try {
+    const { summary, jobTitle, language } = req.body;
+    if (!summary || !summary.trim()) return res.status(400).json({ error: 'Summary is required' });
+
+    if (geminiService) {
+      try {
+        const isAr = language === 'ar';
+        const langStr = isAr ? 'Arabic' : 'English';
+        const promptInfo = jobTitle ? `for a ${jobTitle}` : 'for a professional';
+        const prompt = `Rewrite the following professional summary ${promptInfo} to make it more impactful, concise, and ATS-friendly. 
+Use strong action verbs and highlight key achievements or skills implicitly if present.
+Return ONLY the rewritten summary without any formatting or introductions.
+Output language MUST be ${langStr}.
+
+Original Summary:
+"${summary}"`;
+
+        const result = await geminiService.executeWithFallback(async (model) => {
+          const r = await model.generateContent(prompt);
+          return r.response.text();
+        });
+
+        console.log(`[API] Summary improved using AI`);
+        return res.json({ improvedSummary: result.trim() });
+      } catch (aiError) {
+        console.error('[API] AI improve summary failed:', aiError.message);
+        return res.status(500).json({ error: 'AI enhancement failed' });
+      }
+    } else {
+      return res.status(503).json({ error: 'AI service not configured.' });
+    }
+  } catch (error) {
+    console.error('[API] Improve summary error:', error.message);
+    res.status(500).json({ error: 'Failed to improve summary' });
+  }
+});
+
 // API: AI Field Review
 app.post('/api/review-field', async (req, res) => {
   try {
