@@ -14,8 +14,11 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 password TEXT NOT NULL,
                 name TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )`);
-            
+            )`, () => {
+                // Ignore error if column already exists
+                db.run(`ALTER TABLE users ADD COLUMN subscription_end DATETIME`, () => { });
+            });
+
             db.run(`CREATE TABLE IF NOT EXISTS resumes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,

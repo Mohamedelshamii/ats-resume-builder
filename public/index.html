@@ -628,7 +628,7 @@
   <div class="modal-overlay" id="authModal"
     style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; padding:20px;">
     <div class="form-card" style="max-width:400px; width:100%; position:relative;">
-      <button onclick="document.getElementById('authModal').style.display='none'"
+      <button id="authModalCloseBtn" onclick="document.getElementById('authModal').style.display='none'"
         style="position:absolute; top:15px; left:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px;">✕</button>
 
       <div id="loginFormContainer">
@@ -713,6 +713,24 @@
       style="box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); border-radius:30px; padding:12px 24px;">
       💾 <span data-ar="حفظ السيرة الذاتية (سحابياً)" data-en="Save Resume (Cloud)">حفظ السيرة الذاتية (سحابياً)</span>
     </button>
+  </div>
+
+  <!-- Subscription Modal -->
+  <div class="modal-overlay" id="subscriptionModal"
+    style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:10000; align-items:center; justify-content:center; padding:20px;">
+    <div class="form-card" style="max-width:400px; width:100%; text-align:center;">
+      <button onclick="document.getElementById('subscriptionModal').style.display='none'"
+        style="position:absolute; top:15px; left:15px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:20px;">✕</button>
+      <div style="font-size:40px; margin-bottom:15px;">💎</div>
+      <h2 class="form-card-title mb-4" data-ar="ترقية الحساب" data-en="Upgrade Account">ترقية الحساب</h2>
+      <p style="color:var(--text-secondary); margin-bottom:25px;"
+        data-ar="لتتمكن من تحميل وطباعة السيرة الذاتية بصيغة احترافية، قم بتفعيل الاشتراك التجريبي للمرة الأولى."
+        data-en="To download and print your professional resume, activate your trial subscription.">لتتمكن من تحميل
+        وطباعة السيرة الذاتية بصيغة احترافية، قم بتفعيل الاشتراك التجريبي للمرة الأولى.</p>
+      <button class="nav-btn next" style="width:100%; height:50px; font-size:16px;"
+        onclick="activateTrialSubscription()" data-ar="تفعيل 30 يوم مجاناً" data-en="Activate 30 Days Free">تفعيل 30 يوم
+        مجاناً</button>
+    </div>
   </div>
 
   <!-- Loading Overlay -->

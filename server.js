@@ -429,7 +429,20 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
 });
 
 app.get('/api/auth/me', authenticateToken, (req, res) => {
-  res.json({ user: req.user });
+  db.get('SELECT id, name, email, subscription_end FROM users WHERE id = ?', [req.user.id], (err, row) => {
+    if (err || !row) return res.status(404).json({ error: 'User not found' });
+    res.json({ user: row });
+  });
+});
+
+app.post('/api/subscribe', authenticateToken, (req, res) => {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  const endStr = d.toISOString();
+  db.run('UPDATE users SET subscription_end = ? WHERE id = ?', [endStr, req.user.id], function (err) {
+    if (err) return res.status(500).json({ error: 'Failed to subscribe' });
+    res.json({ message: 'Subscribed successfully', subscription_end: endStr });
+  });
 });
 
 app.get('/api/resumes', authenticateToken, (req, res) => {

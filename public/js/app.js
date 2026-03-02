@@ -601,8 +601,39 @@ async function checkATS() {
   }
 }
 
+// ===== SUBSCRIPTION & PAYMENT CHECK =====
+function hasActiveSubscription() {
+  if (!currentUser) return false;
+  if (!currentUser.subscription_end) return false;
+  return new Date(currentUser.subscription_end) > new Date();
+}
+
+function promptSubscription() {
+  document.getElementById('subscriptionModal').style.display = 'flex';
+}
+
+async function activateTrialSubscription() {
+  try {
+    const res = await fetch('/api/subscribe', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(currentLang === 'ar' ? 'تم تفعيل الاشتراك!' : 'Subscription activated!', 'success');
+      document.getElementById('subscriptionModal').style.display = 'none';
+      await checkAuthStatus(); // refresh user data
+    } else {
+      showToast(data.error || 'Failed to activate', 'error');
+    }
+  } catch (e) {
+    showToast('Network error', 'error');
+  }
+}
+
 // ===== PDF DOWNLOAD =====
 async function downloadPDF() {
+  if (!hasActiveSubscription()) {
+    return promptSubscription();
+  }
+
   const overlay = document.getElementById('loadingOverlay');
   const loadingText = document.getElementById('loadingText');
   loadingText.textContent = currentLang === 'ar' ? 'جاري إنشاء ملف PDF...' : 'Generating PDF...';
@@ -628,6 +659,10 @@ async function downloadPDF() {
 
 // ===== HTML EXPORT =====
 async function viewAsHTML() {
+  if (!hasActiveSubscription()) {
+    return promptSubscription();
+  }
+
   const overlay = document.getElementById('loadingOverlay');
   const loadingText = document.getElementById('loadingText');
   loadingText.textContent = currentLang === 'ar' ? 'جاري التحضير...' : 'Preparing...';
@@ -905,12 +940,57 @@ function resetAll() {
   const msg = currentLang === 'ar' ? 'هل أنت متأكد من إعادة تعيين جميع الحقول؟' : 'Are you sure you want to reset all fields?';
   if (!confirm(msg)) return;
 
+  // Reset state variables
+  currentStep = 1;
+  selectedSpecialization = '';
+  selectedTemplate = 'classic';
+  selectedColor = '#2563eb';
+  userPhotoBase64 = '';
+  skills = [];
+  experienceCount = 0;
+  educationCount = 0;
+
+  // Clear all form inputs
+  document.querySelectorAll('.form-input, .form-textarea').forEach(el => {
+    el.value = '';
+  });
+
+  // Reset specialization selection
+  document.querySelectorAll('.spec-card').forEach(c => c.classList.remove('selected'));
+  if (document.getElementById('customSpecGroup')) {
+    document.getElementById('customSpecGroup').style.display = 'none';
+  }
+
+  // Reset template selection
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+  const classicCard = document.querySelector('[data-template="classic"]');
+  if (classicCard) classicCard.classList.add('selected');
+
+  // Hide photo upload
+  document.getElementById('photoUploadGroup').style.display = 'none';
+  document.getElementById('photoPreviewSmall').innerHTML = '';
+
+  // Clear layout sections
+  document.getElementById('experienceEntries').innerHTML = '';
+  document.getElementById('educationEntries').innerHTML = '';
+  addExperience();
+  addEducation();
+
+  renderSkills();
+
+  // Hide ATS score
+  if (document.getElementById('atsScoreCard')) document.getElementById('atsScoreCard').style.display = 'none';
+
   // Clear localStorage
   clearSavedState();
+  if (document.getElementById('currentResumeId')) {
+    document.getElementById('currentResumeId').value = '';
+  }
 
-  // Reload the page to guarantee a completely fresh start at Step 1
-  location.reload();
+  showStep(1);
+  showToast(currentLang === 'ar' ? 'تم إعادة تعيين جميع الحقول' : 'All fields have been reset', 'success');
 }
+
 // ===== SUMMARY ENHANCEMENTS =====
 const summaryTemplates = {
   software: {
@@ -1146,15 +1226,20 @@ async function checkAuthStatus() {
       document.getElementById('dbDashboardBtn').style.display = 'inline-block';
       document.getElementById('dbLogoutBtn').style.display = 'inline-block';
       document.getElementById('saveToDbFloatingBtn').style.display = currentStep === 8 ? 'block' : 'none';
+
+      // They are logged in, allow them to close modal safely
+      document.getElementById('authModal').style.display = 'none';
     } else {
       currentUser = null;
       document.getElementById('dbLoginBtn').style.display = 'inline-block';
       document.getElementById('dbDashboardBtn').style.display = 'none';
       document.getElementById('dbLogoutBtn').style.display = 'none';
       document.getElementById('saveToDbFloatingBtn').style.display = 'none';
+      openLoginModal(true); // Must log in
     }
   } catch (err) {
     console.error('Auth check fail:', err);
+    openLoginModal(true);
   }
 }
 document.addEventListener('DOMContentLoaded', checkAuthStatus);
@@ -1168,10 +1253,14 @@ showStep = function (step) {
   }
 };
 
-function openLoginModal() {
+function openLoginModal(force = false) {
   document.getElementById('authModal').style.display = 'flex';
   document.getElementById('loginFormContainer').style.display = 'block';
   document.getElementById('registerFormContainer').style.display = 'none';
+  const closeBtn = document.getElementById('authModalCloseBtn');
+  if (closeBtn) {
+    closeBtn.style.display = force ? 'none' : 'block';
+  }
 }
 
 function toggleAuthMode() {
